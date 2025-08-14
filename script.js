@@ -250,20 +250,41 @@ document.addEventListener('DOMContentLoaded', () => {
         { id: 'item4', name: 'Papas Fritas', price: 3.50, type: 'dish' },
         { id: 'item5', name: 'Refresco', price: 2.00, type: 'drink' },
         { id: 'item6', name: 'Agua Embotellada', price: 1.50, type: 'drink' },
-        { id: 'item7', name: 'Jugo de Naranja', price: 3.00, type: 'drink' },
         { id: 'item8', name: 'Café Americano', price: 2.50, type: 'drink' },
         { id: 'item9', name: 'Tarta de Chocolate', price: 4.50, type: 'dessert' },
         { id: 'item10', name: 'Helado de Vainilla', price: 3.00, type: 'dessert' },
         { id: 'item11', name: 'Flan de Caramelo', price: 3.50, type: 'dessert' }
     ];
 
-    const loadMenu = () => {
-        const menu = localStorage.getItem(getStorageKey('menuItems'));
-        return menu ? JSON.parse(menu) : defaultMenuItems;
+    const loadMenu = async () => {
+        if (!currentUser || !currentUser.id) return defaultMenuItems;
+
+        try {
+            const restaurantRef = doc(db, "restaurants", currentUser.id);
+            const docSnap = await getDoc(restaurantRef);
+
+            if (docSnap.exists() && docSnap.data().menuItems) {
+                // Si el menú existe en Firestore, lo retorna
+                return docSnap.data().menuItems;
+            } else {
+                // Si no existe, retorna el menú por defecto y lo guarda en Firestore para futuros usos
+                await saveMenu(defaultMenuItems);
+                return defaultMenuItems;
+            }
+        } catch (error) {
+            console.error("Error al cargar el menú: ", error);
+            return defaultMenuItems; // Retorna el menú por defecto en caso de error
+        }
     };
 
-    const saveMenu = (menu) => {
-        localStorage.setItem(getStorageKey('menuItems'), JSON.stringify(menu));
+    const saveMenu = async (menu) => {
+        if (!currentUser || !currentUser.id) return;
+        const restaurantRef = doc(db, "restaurants", currentUser.id);
+        try {
+            await updateDoc(restaurantRef, { menuItems: menu });
+        } catch (error) {
+            console.error("Error al guardar el menú: ", error);
+        }
     };
 
     const getNextMenuItemId = () => {
@@ -408,173 +429,94 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
-    const addItem = (name, price, type) => {
+    const addItem = async (name, price, type) => {
         if (!name || name.trim() === '') {
-            orderResultDiv.classList.remove('error');
-            orderResultDiv.style.color = 'orange';
             orderResultDiv.textContent = 'El nombre del plato/bebida no puede estar vacío.';
+            orderResultDiv.style.color = 'orange';
             return;
         }
         if (isNaN(price) || price < 0) {
-            orderResultDiv.classList.remove('error');
-            orderResultDiv.style.color = 'orange';
             orderResultDiv.textContent = 'El precio debe ser un número válido mayor o igual a cero.';
-            return;
-        }
-        if (!type) {
-            orderResultDiv.classList.remove('error');
             orderResultDiv.style.color = 'orange';
-            orderResultDiv.textContent = 'Por favor, selecciona un tipo (plato, bebida o postre).';
             return;
         }
 
-        const menu = loadMenu();
+        const menu = await loadMenu();
         const normalizedName = name.trim().toLowerCase();
         if (menu.some(item => item.name.trim().toLowerCase() === normalizedName)) {
-            orderResultDiv.classList.remove('error');
+            orderResultDiv.textContent = `El plato/bebida "${name.trim()}" ya existe.`;
             orderResultDiv.style.color = 'orange';
-            orderResultDiv.textContent = `El plato/bebida/postre "${name.trim()}" ya existe en el menú.`;
             return;
         }
 
         const newItem = { id: getNextMenuItemId(), name: name.trim(), price: parseFloat(price), type: type };
         menu.push(newItem);
-        saveMenu(menu);
+        await saveMenu(menu);
+
         renderMainMenu(menu);
         renderManagementMenu(menu);
         itemNameInput.value = '';
         itemPriceInput.value = '';
-        itemTypeInput.value = 'dish'; 
-        orderResultDiv.classList.remove('error');
+        itemTypeInput.value = 'dish';
+        orderResultDiv.textContent = `Plato "${newItem.name}" agregado.`;
         orderResultDiv.style.color = 'green';
-        orderResultDiv.textContent = `Plato/Bebida/Postre "${newItem.name}" agregado.`;
-
-        renderTopItemsChart();
     };
 
-    const deleteItem = (id) => {
-        let menu = loadMenu();
-        const initialLength = menu.length;
-        const itemToDelete = menu.find(item => item.id === id);
-        const itemName = itemToDelete ? itemToDelete.name : 'un plato/bebida/postre';
+    const deleteItem = async (id) => {
+        let menu = await loadMenu();
+        const itemName = menu.find(item => item.id === id)?.name || 'el plato';
 
-        const confirmed = confirm(`¿Estás seguro de que quieres eliminar "${itemName}"?`);
+        if (confirm(`¿Estás seguro de que quieres eliminar "${itemName}"?`)) {
+            const newMenu = menu.filter(item => item.id !== id);
+            await saveMenu(newMenu);
 
-        if (!confirmed) {
-            orderResultDiv.classList.remove('error');
-            orderResultDiv.style.color = '#333';
-            orderResultDiv.textContent = `Eliminación de "${itemName}" cancelada.`;
-            return;
-        }
-
-        menu = menu.filter(item => item.id !== id);
-        if (menu.length < initialLength) {
-            saveMenu(menu);
-            renderMainMenu(menu);
-            renderManagementMenu(menu);
-            if (editingItemId === id) {
-                cancelEditing();
-            }
-            orderResultDiv.classList.remove('error');
+            renderMainMenu(newMenu);
+            renderManagementMenu(newMenu);
+            if (editingItemId === id) cancelEditing();
+            orderResultDiv.textContent = `Plato "${itemName}" eliminado.`;
             orderResultDiv.style.color = 'green';
-            orderResultDiv.textContent = `Plato/Bebida/Postre "${itemName}" eliminado.`;
-
-            let topItems = loadTopItems();
-            if (topItems[itemName]) {
-                delete topItems[itemName];
-                saveTopItems(topItems);
-                renderTopItemsChart();
-            }
-        } else {
-            console.warn('Attempted to delete non-existent item with ID:', id);
-            orderResultDiv.classList.add('error');
-            orderResultDiv.style.color = 'red';
-            orderResultDiv.textContent = 'Error: No se pudo encontrar el plato/bebida/postre para eliminar.';
         }
     };
 
-    const startEditItem = (id) => {
-        const menu = loadMenu();
+    const startEditItem = async (id) => {
+        const menu = await loadMenu();
         const itemToEdit = menu.find(item => item.id === id);
 
         if (itemToEdit) {
             editingItemId = id;
             itemNameInput.value = itemToEdit.name;
             itemPriceInput.value = itemToEdit.price;
-            itemTypeInput.value = itemToEdit.type || 'dish'; 
+            itemTypeInput.value = itemToEdit.type || 'dish';
             addUpdateItemBtn.innerHTML = '<i class="fas fa-save"></i> Actualizar Plato';
             cancelEditBtn.classList.remove('hidden');
-            orderResultDiv.classList.remove('error');
-            orderResultDiv.style.color = '#333';
             orderResultDiv.textContent = `Editando: "${itemToEdit.name}"`;
-        } else {
-            console.warn('Attempted to edit non-existent item with ID:', id);
-            orderResultDiv.classList.add('error');
-            orderResultDiv.style.color = 'red';
-            orderResultDiv.textContent = 'Error: No se pudo encontrar el plato/bebida/postre para editar.';
-            cancelEditing();
+            orderResultDiv.style.color = '#333';
         }
     };
 
-    const updateItem = (id, newName, newPrice, newType) => {
+    const updateItem = async (id, newName, newPrice, newType) => {
         if (!newName || newName.trim() === '') {
-            orderResultDiv.classList.remove('error');
+            orderResultDiv.textContent = 'El nombre no puede estar vacío.';
             orderResultDiv.style.color = 'orange';
-            orderResultDiv.textContent = 'El nombre del plato/bebida/postre no puede estar vacío.';
             return;
         }
         if (isNaN(newPrice) || newPrice < 0) {
-            orderResultDiv.classList.remove('error');
+            orderResultDiv.textContent = 'El precio debe ser un número válido.';
             orderResultDiv.style.color = 'orange';
-            orderResultDiv.textContent = 'El precio debe ser un número válido mayor o igual a cero.';
             return;
         }
-        if (!newType) {
-            orderResultDiv.classList.remove('error');
-            orderResultDiv.style.color = 'orange';
-            orderResultDiv.textContent = 'Por favor, selecciona un tipo (plato, bebida o postre).';
-            return;
-        }
-        let menu = loadMenu();
+
+        let menu = await loadMenu();
         const itemIndex = menu.findIndex(item => item.id === id);
 
-        const normalizedNewName = newName.trim().toLowerCase();
-        if (menu.some(item => item.id !== id && item.name.trim().toLowerCase() === normalizedNewName)) {
-            orderResultDiv.classList.remove('error');
-            orderResultDiv.style.color = 'orange';
-            orderResultDiv.textContent = `El nombre "${newName.trim()}" ya existe en otro plato/bebida/postre.`;
-            return;
-        }
-
         if (itemIndex > -1) {
-            const oldName = menu[itemIndex].name;
-            menu[itemIndex].name = newName.trim();
-            menu[itemIndex].price = parseFloat(newPrice);
-            menu[itemIndex].type = newType;
-            saveMenu(menu);
+            menu[itemIndex] = { ...menu[itemIndex], name: newName.trim(), price: parseFloat(newPrice), type: newType };
+            await saveMenu(menu);
+
             renderMainMenu(menu);
             renderManagementMenu(menu);
-            orderResultDiv.classList.remove('error');
+            orderResultDiv.textContent = `Plato "${newName.trim()}" actualizado.`;
             orderResultDiv.style.color = 'green';
-            orderResultDiv.textContent = `Plato/Bebida/Postre actualizado de "${oldName}" a "${menu[itemIndex].name}".`;
-            cancelEditing();
-
-            if (oldName !== newName.trim()) {
-                let topItems = loadTopItems();
-                if (topItems[oldName]) {
-                    topItems[newName.trim()] = topItems[oldName];
-                    delete topItems[oldName];
-                    saveTopItems(topItems);
-                    renderTopItemsChart();
-                }
-            } else {
-                renderTopItemsChart();
-            }
-        } else {
-            console.warn('Attempted to update non-existent item with ID:', id);
-            orderResultDiv.classList.add('error');
-            orderResultDiv.style.color = 'red';
-            orderResultDiv.textContent = 'Error: No se pudo encontrar el plato/bebida/postre para actualizar.';
             cancelEditing();
         }
     };
@@ -1876,60 +1818,45 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    addUpdateItemBtn.addEventListener('click', () => {
+    addUpdateItemBtn.addEventListener('click', async () => {
         const itemName = itemNameInput.value.trim();
         const itemPrice = parseFloat(itemPriceInput.value);
-        const itemType = itemTypeInput.value; 
+        const itemType = itemTypeInput.value;
 
         if (editingItemId) {
-            updateItem(editingItemId, itemName, itemPrice, itemType);
+            await updateItem(editingItemId, itemName, itemPrice, itemType);
         } else {
-            addItem(itemName, itemPrice, itemType);
+            await addItem(itemName, itemPrice, itemType);
         }
     });
 
     cancelEditBtn.addEventListener('click', () => {
         cancelEditing();
-        orderResultDiv.classList.remove('error');
-        orderResultDiv.style.color = '';
         orderResultDiv.textContent = '';
     });
 
-    managementMenuListDiv.addEventListener('click', (event) => {
-        if (event.target.classList.contains('edit-item-btn') || event.target.closest('.edit-item-btn')) {
-            const btn = event.target.closest('.edit-item-btn');
-            const itemId = btn.dataset.id;
-            startEditItem(itemId);
-        } else if (event.target.classList.contains('delete-item-btn') || event.target.closest('.delete-item-btn')) {
-            const btn = event.target.closest('.delete-item-btn');
-            const itemId = btn.dataset.id;
-            deleteItem(itemId);
+    managementMenuListDiv.addEventListener('click', async (event) => {
+        const editBtn = event.target.closest('.edit-item-btn');
+        if (editBtn) {
+            await startEditItem(editBtn.dataset.id);
+            return; // Stop further execution
+        }
+
+        const deleteBtn = event.target.closest('.delete-item-btn');
+        if (deleteBtn) {
+            await deleteItem(deleteBtn.dataset.id);
         }
     });
 
-    resetMenuBtn.addEventListener('click', () => {
-        const confirmed = confirm('¿Estás seguro de que quieres restablecer el menú a su estado predeterminado? Todos los platos actuales se eliminarán.');
-
-        if (confirmed) {
-            saveMenu(defaultMenuItems);
-
-            const updatedMenu = loadMenu();
+    resetMenuBtn.addEventListener('click', async () => {
+        if (confirm('¿Estás seguro de que quieres restablecer el menú a su estado predeterminado? Todos los platos actuales se eliminarán.')) {
+            await saveMenu(defaultMenuItems);
+            const updatedMenu = await loadMenu();
             renderMainMenu(updatedMenu);
             renderManagementMenu(updatedMenu);
-
             cancelEditing();
-
-            orderResultDiv.classList.remove('error');
-            orderResultDiv.style.color = 'orange';
             orderResultDiv.textContent = 'Menú restablecido a valores predeterminados.';
-
-            localStorage.removeItem(getStorageKey('topItemsSold'));
-            renderTopItemsChart();
-
-        } else {
-            orderResultDiv.classList.remove('error');
-            orderResultDiv.style.color = '#333';
-            orderResultDiv.textContent = 'Restablecimiento de menú cancelado.';
+            orderResultDiv.style.color = 'orange';
         }
     });
 

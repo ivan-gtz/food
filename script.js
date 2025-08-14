@@ -1412,12 +1412,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const resetTopItems = () => {
         const confirmed = confirm('¿Estás seguro de que quieres reiniciar los datos de los artículos vendidos? Esto borrará el historial de popularidad de los artículos.');
         if (confirmed) {
-            // We no longer clear topItemsSold directly as it's computed dynamically
-            // Instead, we might want to clear the 'Recibido' status for all relevant orders,
-            // or simply acknowledge that the chart will reset as there are no 'Recibido' orders for today.
-            // For now, removing the logic that clears topItemsSold, as it's now computed from order history
-            // If the user truly wants to "reset" the displayed top items, they'd have to change order statuses.
-            // Or, we could add a feature to clear *all* order history (which already exists and clears relevant data).
             renderTopItemsChart(); // Re-render to show updated (or lack of) data
             renderOrderTypeChart(); // Re-render order type chart as well
             orderResultDiv.classList.remove('error');
@@ -2103,16 +2097,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const logout = () => {
         const modal = document.createElement('div');
         modal.id = 'logout-modal';
+        // Usar las clases definidas en style.css
+        modal.className = 'logout-modal-overlay'; 
         modal.innerHTML = `
-            <div class="logout-modal-overlay">
-                <div class="logout-modal-content">
-                    <div class="logout-icon"><i class="fas fa-sign-out-alt"></i></div>
-                    <h3>¿Cerrar Sesión?</h3>
-                    <p>¿Estás seguro de que quieres cerrar tu sesión actual?</p>
-                    <div class="logout-buttons">
-                        <button class="logout-cancel">Cancelar</button>
-                        <button class="logout-confirm">Cerrar Sesión</button>
-                    </div>
+            <div class="logout-modal-content">
+                <div class="logout-icon"><i class="fas fa-sign-out-alt"></i></div>
+                <h3>¿Cerrar Sesión?</h3>
+                <p>¿Estás seguro de que quieres cerrar tu sesión actual?</p>
+                <div class="logout-buttons">
+                    <button class="logout-cancel">Cancelar</button>
+                    <button class="logout-confirm">Cerrar Sesión</button>
                 </div>
             </div>
         `;
@@ -2122,7 +2116,7 @@ document.addEventListener('DOMContentLoaded', () => {
         modal.querySelector('.logout-confirm').addEventListener('click', async () => {
             await signOut(auth);
             modal.remove();
-            alert('Sesión cerrada correctamente.');
+            // Se ha quitado el alert('Sesión cerrada correctamente.');
         });
         modal.querySelector('.logout-modal-overlay').addEventListener('click', (e) => {
             if (e.target === e.currentTarget) modal.remove();
@@ -2483,17 +2477,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initialize floating total
     updateFloatingTotal();
-
-    // Initial setup logic
-    //currentUser = getCurrentUser(); // Set currentUser at startup - REMOVED, handled by onAuthStateChanged
-
-    // Ensure admin user exists on first load - REMOVED, handled in Firebase console
-    // const allUsers = loadUsers();
-    // if (!allUsers.some(user => user.username === 'fastVis77' && user.role === 'admin')) {
-    //     let currentUsers = allUsers.filter(user => !(user.username === 'admin' && user.role === 'admin')); 
-    //     currentUsers.push({ id: 'admin', username: 'fastVis77', password: 'Fast/Vis/77', role: 'admin' });
-    //     saveUsers(currentUsers);
-    // }
     
     // Ensure menu is populated with default items if empty
     if (currentUser && (currentUser.role === 'restaurant' || currentUser.role === 'admin')) {
@@ -2511,17 +2494,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     updateLoginButton(); // Update button based on current user status
     updateSidebarVisibility(); // Update sidebar visibility based on current user role
-
-    // REMOVED initial logic, onAuthStateChanged will handle showing login or content
-    // if (currentUser) {
-    //     containerWrapper.classList.remove('hidden');
-    //     loginModalOverlay.classList.remove('active');
-    //     loginModalOverlay.classList.add('hidden');
-    //     updateDailySummary();
-    //     renderTopItemsChart();
-    // } else {
-    //     openLoginModal(); // If no user, show login modal
-    // }
 
     // Password visibility toggle for login modal
     (function() {
@@ -2552,185 +2524,6 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
     })();
-
-    // New: Weekly Stats functionality
-    // let weeklyRevenueChartInstance = null; // To hold the Chart.js instance
-
-    // const loadWeeklyStats = () => {
-    //     const startDateString = weeklyStartDateInput.value;
-    //     const endDateString = weeklyEndDateInput.value;
-
-    //     if (!startDateString || !endDateString) {
-    //         noWeeklyStatsMessage.textContent = 'Por favor, selecciona un rango de fechas válido.';
-    //         noWeeklyStatsMessage.classList.remove('hidden');
-    //         weeklyTotalOrdersSpan.textContent = '0';
-    //         weeklyTotalRevenueSpan.textContent = '0.00';
-    //         if (weeklyRevenueChartInstance) {
-    //             weeklyRevenueChartInstance.destroy();
-    //             weeklyRevenueChartInstance = null;
-    //         }
-    //         weeklyRevenueChartCanvas.classList.add('hidden');
-    //         return;
-    //     }
-
-    //     const startDate = new Date(startDateString);
-    //     const endDate = new Date(endDateString);
-    //     endDate.setHours(23, 59, 50, 999); // Set to end of the day
-
-    //     if (startDate > endDate) {
-    //         noWeeklyStatsMessage.textContent = 'La fecha de inicio no puede ser posterior a la fecha de finalización.';
-    //         noWeeklyStatsMessage.classList.remove('hidden');
-    //         weeklyTotalOrdersSpan.textContent = '0';
-    //         weeklyTotalRevenueSpan.textContent = '0.00';
-    //         if (weeklyRevenueChartInstance) {
-    //             weeklyRevenueChartInstance.destroy();
-    //             weeklyRevenueChartInstance = null;
-    //         }
-    //         weeklyRevenueChartCanvas.classList.add('hidden');
-    //         return;
-    //     }
-
-    //     const history = loadOrderHistory();
-    //     let totalOrders = 0;
-    //     let totalRevenue = 0;
-    //     const dailyRevenue = {}; // To store revenue for each day
-
-    //     // Initialize dailyRevenue for all days in the range
-    //     for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
-    //         dailyRevenue[d.toDateString()] = 0;
-    //     }
-
-    //     history.forEach(order => {
-    //         const orderDate = new Date(order.timestamp);
-    //         if (order.status === 'Recibido' && orderDate >= startDate && orderDate <= endDate) {
-    //             totalOrders++;
-    //             totalRevenue += order.totalPrice;
-    //             const orderDateString = orderDate.toDateString();
-    //             dailyRevenue[orderDateString] = (dailyRevenue[orderDateString] || 0) + order.totalPrice;
-    //         }
-    //     });
-
-    //     weeklyTotalOrdersSpan.textContent = totalOrders;
-    //     weeklyTotalRevenueSpan.textContent = totalRevenue.toFixed(2);
-    //     weeklyCurrencyDisplaySpan.textContent = appSettings.currencySymbol || '$';
-
-    //     renderWeeklyRevenueChart(dailyRevenue, startDate, endDate);
-    // };
-
-    // const renderWeeklyRevenueChart = (dailyRevenue = {}, startDate = null, endDate = null) => {
-    //     if (!startDate || !endDate) {
-    //         const history = loadOrderHistory();
-    //         if (history.length > 0) {
-    //             // Determine a default date range if not provided
-    //             startDate = new Date(history[history.length - 1].timestamp); // Oldest order date
-    //             endDate = new Date(); // Today
-    //             endDate.setHours(23, 59, 59, 999);
-    //         } else {
-    //             noWeeklyStatsMessage.classList.remove('hidden');
-    //             weeklyRevenueChartCanvas.classList.add('hidden');
-    //             if (weeklyRevenueChartInstance) {
-    //                 weeklyRevenueChartInstance.destroy();
-    //                 weeklyRevenueChartInstance = null;
-    //             }
-    //             return;
-    //         }
-    //     }
-        
-    //     // Re-calculate dailyRevenue based on the current full order history and provided date range
-    //     // This ensures the chart accurately reflects changes if `loadOrderHistory` or date inputs change
-    //     const history = loadOrderHistory();
-    //     const calculatedDailyRevenue = {};
-    //     for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
-    //         calculatedDailyRevenue[d.toDateString()] = 0;
-    //     }
-
-    //     history.forEach(order => {
-    //         const orderDate = new Date(order.timestamp);
-    //         if (order.status === 'Recibido' && orderDate >= startDate && orderDate <= endDate) {
-    //             const orderDateString = orderDate.toDateString();
-    //             calculatedDailyRevenue[orderDateString] = (calculatedDailyRevenue[orderDateString] || 0) + order.totalPrice;
-    //         }
-    //     });
-    //     dailyRevenue = calculatedDailyRevenue; // Use the freshly calculated data
-
-    //     const labels = [];
-    //     const data = [];
-
-    //     for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
-    //         labels.push(d.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' }));
-    //         data.push(dailyRevenue[d.toDateString()] || 0);
-    //     }
-
-    //     if (weeklyRevenueChartInstance) {
-    //         weeklyRevenueChartInstance.destroy();
-    //     }
-
-    //     if (labels.length === 0 || data.every(val => val === 0)) {
-    //         weeklyRevenueChartCanvas.classList.add('hidden');
-    //         noWeeklyStatsMessage.classList.remove('hidden');
-    //         return;
-    //     } else {
-    //         weeklyRevenueChartCanvas.classList.remove('hidden');
-    //         noWeeklyStatsMessage.classList.add('hidden');
-    //     }
-
-    //     const ctx = weeklyRevenueChartCanvas.getContext('2d');
-    //     weeklyRevenueChartInstance = new Chart(ctx, {
-    //         type: 'line',
-    //         data: {
-    //             labels: labels,
-    //             datasets: [{
-    //                 label: 'Ingresos Diarios',
-    //                 data: data,
-    //                 borderColor: '#2196F3', // Blue line
-    //                 backgroundColor: 'rgba(33, 150, 243, 0.2)', // Light blue fill
-    //                 tension: 0.4, // Smooth curve
-    //                 fill: true,
-    //                 pointBackgroundColor: '#2196F3',
-    //                 pointBorderColor: '#fff',
-    //                 pointHoverBackgroundColor: '#fff',
-    //                 pointHoverBorderColor: '#2196F3',
-    //                 pointRadius: 5,
-    //                 pointHoverRadius: 7
-    //             }]
-    //         },
-    //         options: {
-    //             responsive: true,
-    //             maintainAspectRatio: false,
-    //             scales: {
-    //                 y: {
-    //                     beginAtZero: true,
-    //                     title: {
-    //                         display: true,
-    //                         text: `Ingresos (${appSettings.currencySymbol || '$'})`
-    //                     }
-    //                 },
-    //                 x: {
-    //                     title: {
-    //                         display: true,
-    //                         text: 'Fecha'
-    //                     }
-    //                 }
-    //             },
-    //             plugins: {
-    //                 legend: {
-    //                     display: false // We only have one dataset, no need for legend
-    //                 },
-    //                 title: {
-    //                     display: true,
-    //                     text: 'Ingresos Semanales'
-    //                 },
-    //                 tooltip: {
-    //                     callbacks: {
-    //                         label: function(context) {
-    //                             return ` ${context.dataset.label}: ${context.raw.toFixed(2)} ${appSettings.currencySymbol || '$'}`
-    //                         }
-    //                     }
-    //                 }
-    //             }
-    //         }
-    //     });
-    // };
 
     // New: Function to render Order Type Distribution Chart
     const renderOrderTypeChart = () => {

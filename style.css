@@ -1184,9 +1184,9 @@ h2 {
     font-weight: 600;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     transition: all 0.2s ease;
-    display: inline-flex; /* Changed to inline-flex */
-    align-items: center; /* Center icon and text vertically */
-    justify-content: center; /* Center icon and text horizontally */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
 #management-menu-list .menu-item-actions .edit-item-btn {
@@ -1305,9 +1305,9 @@ h2 {
     font-family: 'Open Sans', sans-serif;
     font-weight: 600;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-    display: inline-flex; /* Changed to inline-flex */
-    align-items: center; /* Center icon and text vertically */
-    justify-content: center; /* Center icon and text horizontally */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .download-button:hover {
@@ -1484,9 +1484,9 @@ h2 {
     font-family: 'Open Sans', sans-serif;
     font-weight: 600;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-    display: inline-flex; /* Changed to inline-flex */
-    align-items: center; /* Center icon and text vertically */
-    justify-content: center; /* Center icon and text horizontally */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .modal-content .confirm-button:hover {
@@ -2093,6 +2093,11 @@ h2 {
     .modal-content h2 {
         font-size: 2em;
     }
+    .modal-content .close-button {
+        font-size: 2em;
+        top: 10px;
+        right: 15px;
+    }
     .modal-content input[type="number"],
     .modal-content input[type="text"],
     .modal-content input[type="password"], /* Added for password */
@@ -2546,4 +2551,88 @@ footer p {
         font-size: 1.2em;
         padding: 12px 30px;
     }
+}
+
+.logout-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1002;
+    animation: fadeIn 0.3s ease;
+}
+
+.logout-modal-content {
+    background: linear-gradient(135deg, #FFD700 0%, #FF8C00 100%);
+    border-radius: 20px;
+    padding: 40px;
+    text-align: center;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    max-width: 400px;
+    width: 90%;
+    border: 3px solid #D32F2F;
+    animation: slideUp 0.3s ease;
+}
+
+.logout-icon {
+    font-size: 3rem;
+    color: #D32F2F;
+    margin-bottom: 20px;
+}
+
+.logout-modal-content h3 {
+    font-family: 'Fredoka One', cursive;
+    color: #D32F2F;
+    font-size: 1.8rem;
+    margin-bottom: 15px;
+}
+
+.logout-modal-content p {
+    color: #333;
+    font-size: 1.1rem;
+    margin-bottom: 30px;
+    line-height: 1.4;
+}
+
+.logout-buttons {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+}
+
+.logout-cancel, .logout-confirm {
+    padding: 12px 30px;
+    border: none;
+    border-radius: 25px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.logout-cancel {
+    background: #f0f0f0;
+    color: #333;
+    border: 2px solid #ccc;
+}
+
+.logout-cancel:hover {
+    background: #e0e0e0;
+    transform: translateY(-2px);
+}
+
+.logout-confirm {
+    background: linear-gradient(135deg, #D32F2F 0%, #B71C1C 100%);
+    color: white;
+    box-shadow: 0 4px 15px rgba(211, 47, 47, 0.3);
+}
+
+.logout-confirm:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(211, 47, 47, 0.4);
 }

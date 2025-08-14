@@ -1,5 +1,5 @@
 import { db, auth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from './firebase-init.js';
-import { doc, getDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+import { doc, getDoc, collection, getDocs, setDoc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 
 document.addEventListener('DOMContentLoaded', () => {
     const placeOrderBtn = document.getElementById('place-order-btn');
@@ -86,7 +86,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const navRestaurantManagement = document.getElementById('nav-restaurant-management');
     const restaurantIdInput = document.getElementById('restaurant-id-input');
     const restaurantNameManagementInput = document.getElementById('restaurant-name-management-input');
-    const restaurantPasswordInput = document.getElementById('restaurant-password-input');
     const addUpdateRestaurantBtn = document.getElementById('add-update-restaurant-btn');
     const cancelEditRestaurantBtn = document.getElementById('cancel-edit-restaurant-btn');
     const restaurantListManagementDiv = document.getElementById('restaurant-list-management');
@@ -1790,7 +1789,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    const showSection = (sectionId) => {
+    const showSection = async (sectionId) => {
         if (!currentUser) {
             alert('Por favor, inicia sesión para acceder a esta función.');
             openLoginModal();
@@ -1820,7 +1819,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 renderOrderHistory();
                 break;
             case 'menu-management':
-                const currentMenu = loadMenu();
+                const currentMenu = await loadMenu();
                 renderManagementMenu(currentMenu);
                 renderMainMenu(currentMenu);
                 cancelEditing();
@@ -1833,7 +1832,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 renderOrderTypeChart(); // Call to render order type chart here
                 break;
             case 'restaurant-management-section':
-                renderRestaurantManagement();
+                await renderRestaurantManagement();
                 break;
             case 'home-section':
                 orderResultDiv.classList.remove('error');
@@ -1978,7 +1977,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- INICIO: LÓGICA DE AUTENTICACIÓN CON FIREBASE ---
 
-    const setCurrentUser = (user) => {
+    const setCurrentUser = async (user) => {
         currentUser = user;
         // Ya no se guarda en localStorage, onAuthStateChanged maneja el estado.
         updateLoginButton();
@@ -1991,15 +1990,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Cargar datos específicos del usuario/restaurante
             loadAppSettings();
-            renderMainMenu(loadMenu());
+            renderMainMenu(await loadMenu());
             updateTotalPrice();
             updateDailySummary();
             renderTopItemsChart();
 
             if (user.role === 'admin') {
-                showSection('restaurant-management-section');
+                await showSection('restaurant-management-section');
             } else {
-                showSection('home-section');
+                await showSection('home-section');
             }
         } else {
             // Si no hay usuario, limpiar y mostrar pantalla de login
@@ -2034,7 +2033,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     role: userData.role,
                     id: userData.id // ID del restaurante para usuarios de tipo 'restaurant'
                 };
-                setCurrentUser(userProfile);
+                await setCurrentUser(userProfile);
                  loginMessage.textContent = `¡Bienvenido, ${userProfile.username}!`;
                  setTimeout(() => {
                     loginMessage.classList.add('hidden');
@@ -2049,7 +2048,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } else {
             // Usuario ha cerrado sesión
-            setCurrentUser(null);
+            await setCurrentUser(null);
         }
     });
 
@@ -2189,45 +2188,22 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    const loadRestaurants = () => {
-        const restaurants = localStorage.getItem('restaurants'); 
-        return restaurants ? JSON.parse(restaurants) : [];
-    };
-
-    const saveRestaurants = (restaurants) => {
-        localStorage.setItem('restaurants', JSON.stringify(restaurants)); 
-    };
-
-    const renderRestaurantManagement = () => {
-        restaurantListManagementDiv.innerHTML = '';
-        let restaurants = loadRestaurants();
-        
-        // New: Check and deactivate restaurants if their end date has passed
-        const today = new Date();
-        today.setHours(0, 0, 0, 0); // Normalize to start of day
-
-        let needsSave = false;
-        restaurants.forEach(restaurant => {
-            if (restaurant.endDate) {
-                const endDate = new Date(restaurant.endDate);
-                endDate.setHours(0, 0, 0, 0); // Normalize to start of day
-                if (today > endDate && restaurant.active) {
-                    restaurant.active = false;
-                    needsSave = true;
-                    console.log(`Restaurante ${restaurant.name} (ID: ${restaurant.id}) desactivado automáticamente por fecha de finalización.`);
-                }
-            }
+    const loadRestaurants = async () => {
+        const querySnapshot = await getDocs(collection(db, "restaurants"));
+        const restaurants = [];
+        querySnapshot.forEach((doc) => {
+            restaurants.push({ ...doc.data(), docId: doc.id });
         });
+        return restaurants;
+    };
 
-        if (needsSave) {
-            saveRestaurants(restaurants);
-            restaurants = loadRestaurants(); // Reload to ensure data consistency
-        }
+    const renderRestaurantManagement = async () => {
+        restaurantListManagementDiv.innerHTML = '<p>Cargando restaurantes...</p>';
+        const restaurants = await loadRestaurants();
+        restaurantListManagementDiv.innerHTML = '';
 
         if (restaurants.length === 0) {
-            const p = document.createElement('p');
-            p.textContent = 'No hay restaurantes registrados.';
-            restaurantListManagementDiv.appendChild(p);
+            restaurantListManagementDiv.innerHTML = '<p>No hay restaurantes registrados.</p>';
             return;
         }
 
@@ -2238,14 +2214,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const statusToggle = document.createElement('label');
             statusToggle.classList.add('restaurant-status-toggle');
             statusToggle.innerHTML = `
-                <input type="checkbox" data-id="${restaurant.id}" ${restaurant.active ? 'checked' : ''}>
+                <input type="checkbox" data-id="${restaurant.docId}" ${restaurant.active ? 'checked' : ''}>
                 <span class="slider round"></span>
             `;
             statusToggle.querySelector('input').addEventListener('change', (e) => toggleRestaurantStatus(e.target.dataset.id, e.target.checked));
 
-            // Format dates for display
-            const startDateDisplay = restaurant.startDate ? new Date(restaurant.startDate).toLocaleDateString('es-ES') : 'N/A';
-            const endDateDisplay = restaurant.endDate ? new Date(restaurant.endDate).toLocaleDateString('es-ES') : 'N/A';
+            const startDateDisplay = restaurant.startDate ? new Date(restaurant.startDate.seconds * 1000).toLocaleDateString('es-ES') : 'N/A';
+            const endDateDisplay = restaurant.endDate ? new Date(restaurant.endDate.seconds * 1000).toLocaleDateString('es-ES') : 'N/A';
 
             div.innerHTML = `
                 <div class="restaurant-info">
@@ -2256,11 +2231,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     <strong>Fin Suscripción:</strong> ${endDateDisplay}
                 </div>
                 <div class="restaurant-actions">
-                    <button class="edit-restaurant-btn" data-id="${restaurant.id}"><i class="fas fa-edit"></i> Editar</button>
-                    <button class="delete-restaurant-btn" data-id="${restaurant.id}"><i class="fas fa-trash-alt"></i> Eliminar</button>
+                    <button class="edit-restaurant-btn" data-id="${restaurant.docId}"><i class="fas fa-edit"></i> Editar</button>
+                    <button class="delete-restaurant-btn" data-id="${restaurant.docId}"><i class="fas fa-trash-alt"></i> Eliminar</button>
                 </div>
             `;
-            div.querySelector('.restaurant-info').appendChild(statusToggle); // Append toggle to info div
+            div.querySelector('.restaurant-info').appendChild(statusToggle);
 
             restaurantListManagementDiv.appendChild(div);
         });
@@ -2273,188 +2248,109 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
-    const toggleRestaurantStatus = (id, isActive) => {
-        let restaurants = loadRestaurants();
-        const restaurantIndex = restaurants.findIndex(r => r.id === id);
-
-        if (restaurantIndex > -1) {
-            restaurants[restaurantIndex].active = isActive;
-            saveRestaurants(restaurants);
-            renderRestaurantManagement(); // Re-render to show updated status
-            orderResultDiv.classList.remove('error');
+    const toggleRestaurantStatus = async (docId, isActive) => {
+        const restaurantRef = doc(db, "restaurants", docId);
+        try {
+            await updateDoc(restaurantRef, { active: isActive });
+            orderResultDiv.textContent = `Estado del restaurante actualizado.`;
             orderResultDiv.style.color = 'green';
-            orderResultDiv.textContent = `Restaurante "${restaurants[restaurantIndex].name}" ahora está ${isActive ? 'Activo' : 'Inactivo'}.`;
-        } else {
-            console.warn('Attempted to toggle status for non-existent restaurant with ID:', id);
-            orderResultDiv.classList.add('error');
+            renderRestaurantManagement();
+        } catch (error) {
+            console.error("Error updating restaurant status: ", error);
+            orderResultDiv.textContent = 'Error al actualizar el estado.';
             orderResultDiv.style.color = 'red';
-            orderResultDiv.textContent = 'Error: No se pudo encontrar el restaurante para cambiar su estado.';
         }
     };
 
-    const addUpdateRestaurant = () => {
-        const id = restaurantIdInput.value.trim();
-        const name = restaurantNameManagementInput.value.trim();
-        const password = restaurantPasswordInput.value.trim();
-        const startDate = startDateInput.value; // Get date values
-        const endDate = endDateInput.value;     // Get date values
+    const addUpdateRestaurant = async () => {
+        const restaurantId = editingRestaurantId || restaurantIdInput.value.trim();
+        const restaurantName = restaurantNameManagementInput.value.trim();
+        const startDate = startDateInput.value;
+        const endDate = endDateInput.value;
 
-        if (!id || !name || !password || !startDate || !endDate) { // All fields mandatory
-            orderResultDiv.classList.add('error');
+        if (!restaurantId || !restaurantName || !startDate || !endDate) {
+            orderResultDiv.textContent = 'Todos los campos son obligatorios.';
             orderResultDiv.style.color = 'orange';
-            orderResultDiv.textContent = 'Todos los campos de restaurante (incluyendo fechas) son obligatorios.';
             return;
         }
 
-        // Validate dates: End Date must be after Start Date
-        const start = new Date(startDate);
-        const end = new Date(endDate);
-        if (start > end) {
-            orderResultDiv.classList.add('error');
-            orderResultDiv.style.color = 'orange';
-            orderResultDiv.textContent = 'La fecha de finalización debe ser posterior a la fecha de inicio.';
-            return;
-        }
+        const restaurantRef = doc(db, "restaurants", restaurantId);
 
-        let restaurants = loadRestaurants();
-        let users = loadUsers();
+        try {
+            const dataToSave = {
+                id: restaurantId,
+                name: restaurantName,
+                startDate: new Date(startDate),
+                endDate: new Date(endDate),
+            };
 
-        if (editingRestaurantId) {
-            const restaurantIndex = restaurants.findIndex(r => r.id === editingRestaurantId);
-            const userIndex = users.findIndex(u => u.id === editingRestaurantId);
-
-            if (restaurantIndex > -1) {
-                if (restaurants.some(r => r.id !== editingRestaurantId && r.id === id) ||
-                    restaurants.some(r => r.id !== editingRestaurantId && r.name.toLowerCase() === name.toLowerCase())) {
-                    orderResultDiv.classList.add('error');
-                    orderResultDiv.style.color = 'orange';
-                    orderResultDiv.textContent = 'El ID o Nombre de restaurante ya está en uso por otro restaurante.';
-                    return;
-                }
-
-                restaurants[restaurantIndex] = { 
-                    id: id, 
-                    name: name, 
-                    password: password, 
-                    active: restaurants[restaurantIndex].active || true, // Preserve active status
-                    startDate: startDate, // Save start date
-                    endDate: endDate      // Save end date
-                }; 
-                if (userIndex > -1) {
-                    users[userIndex] = { id: id, username: name, password: password, role: 'restaurant' };
-                } else {
-                    users.push({ id: id, username: name, password: password, role: 'restaurant' });
-                }
-                orderResultDiv.classList.remove('error');
-                orderResultDiv.style.color = 'green';
-                orderResultDiv.textContent = `Restaurante "${name}" actualizado.`;
+            if (editingRestaurantId) {
+                // Modo Edición: Solo actualiza los campos, no sobreescribe todo el documento
+                await updateDoc(restaurantRef, dataToSave);
+                alert('Restaurante actualizado correctamente'); // <-- ALERTA AÑADIDA
             } else {
-                orderResultDiv.classList.add('error');
-                orderResultDiv.style.color = 'red';
-                orderResultDiv.textContent = 'Error: Restaurante no encontrado para actualizar.';
-            }
-        } else {
-            if (restaurants.some(r => r.id === id) || restaurants.some(r => r.name.toLowerCase() === name.toLowerCase())) {
-                orderResultDiv.classList.add('error');
-                orderResultDiv.style.color = 'orange';
-                orderResultDiv.textContent = 'El ID o Nombre de Restaurante ya existe.';
-                return;
-            }
-            if (users.some(u => u.id === id || u.username.toLowerCase() === name.toLowerCase())) {
-                orderResultDiv.classList.add('error');
-                orderResultDiv.style.color = 'orange';
-                orderResultDiv.textContent = 'Ya existe un usuario con este ID o nombre.';
-                return;
+                // Modo Creación: Establece los datos iniciales
+                dataToSave.active = true;
+                dataToSave.menuItems = [];
+                dataToSave.settings = {
+                    restaurantName: restaurantName,
+                    restaurantLogoUrl: "",
+                    currencySymbol: "$",
+                    volume: 1
+                };
+                await setDoc(restaurantRef, dataToSave);
+                alert(`Recuerda crear el usuario para ${restaurantName} en Firebase Authentication y vincularlo en la colección 'users'.`);
             }
 
-            const newRestaurant = { id: id, name: name, password: password, active: true, startDate: startDate, endDate: endDate }; // New restaurants are active by default
-            restaurants.push(newRestaurant);
-            users.push({ id: id, username: name, password: password, role: 'restaurant' });
-            orderResultDiv.classList.remove('error');
+            orderResultDiv.textContent = `Restaurante "${restaurantName}" ${editingRestaurantId ? 'actualizado' : 'añadido'}.`;
             orderResultDiv.style.color = 'green';
-            orderResultDiv.textContent = `Restaurante "${name}" añadido.`;
+
+            renderRestaurantManagement();
+            cancelEditRestaurant();
+        } catch (error) {
+            console.error("Error saving restaurant: ", error);
+            orderResultDiv.textContent = 'Error al guardar el restaurante.';
+            orderResultDiv.style.color = 'red';
         }
-        saveRestaurants(restaurants);
-        saveUsers(users);
-        renderRestaurantManagement();
-        cancelEditRestaurant();
     };
 
-    const startEditRestaurant = (id) => {
-        const restaurants = loadRestaurants();
-        const restaurantToEdit = restaurants.find(r => r.id === id);
+    const startEditRestaurant = async (docId) => {
+        const restaurantRef = doc(db, "restaurants", docId);
+        const docSnap = await getDoc(restaurantRef);
 
-        if (restaurantToEdit) {
-            editingRestaurantId = id;
-            restaurantIdInput.value = restaurantToEdit.id;
-            restaurantNameManagementInput.value = restaurantToEdit.name;
-            restaurantPasswordInput.value = restaurantToEdit.password;
-            startDateInput.value = restaurantToEdit.startDate || ''; // Populate start date
-            endDateInput.value = restaurantToEdit.endDate || '';     // Populate end date
+        if (docSnap.exists()) {
+            const restaurant = docSnap.data();
+            editingRestaurantId = docId;
+            restaurantIdInput.value = restaurant.id;
+            restaurantNameManagementInput.value = restaurant.name;
+            startDateInput.value = new Date(restaurant.startDate.seconds * 1000).toISOString().split('T')[0];
+            endDateInput.value = new Date(restaurant.endDate.seconds * 1000).toISOString().split('T')[0];
+            
             addUpdateRestaurantBtn.innerHTML = '<i class="fas fa-save"></i> Actualizar Restaurante';
             cancelEditRestaurantBtn.classList.remove('hidden');
             restaurantIdInput.disabled = true;
-            orderResultDiv.classList.remove('error');
+            orderResultDiv.textContent = `Editando restaurante: "${restaurant.name}"`;
             orderResultDiv.style.color = '#333';
-            orderResultDiv.textContent = `Editando restaurante: "${restaurantToEdit.name}"`;
         } else {
-            console.warn('Attempted to edit non-existent restaurant with ID:', id);
-            orderResultDiv.classList.add('error');
-            orderResultDiv.style.color = 'red';
             orderResultDiv.textContent = 'Error: No se pudo encontrar el restaurante para editar.';
-            cancelEditRestaurant();
+            orderResultDiv.style.color = 'red';
         }
     };
 
-    const deleteRestaurant = (id) => {
-        const confirmed = confirm('¿Estás seguro de que quieres eliminar este restaurante? Esto también eliminará su usuario y todos sus datos (pedidos, menú, resumen).');
-        if (!confirmed) {
-            orderResultDiv.classList.remove('error');
-            orderResultDiv.style.color = '#333';
-            orderResultDiv.textContent = 'Eliminación de restaurante cancelada.';
-            return;
-        }
+    const deleteRestaurant = async (docId) => {
+        const confirmed = confirm('¿Estás seguro de que quieres eliminar este restaurante de la base de datos? Esta acción no se puede deshacer.');
 
-        let restaurants = loadRestaurants();
-        let users = loadUsers();
-        const initialRestaurantLength = restaurants.length;
-        const restaurantToDelete = restaurants.find(r => r.id === id);
-        const restaurantName = restaurantToDelete ? restaurantToDelete.name : 'un restaurante';
+        if (!confirmed) return;
 
-        restaurants = restaurants.filter(r => r.id !== id);
-        users = users.filter(u => u.id !== id);
-
-        if (restaurants.length < initialRestaurantLength) {
-            saveRestaurants(restaurants);
-            saveUsers(users);
-            renderRestaurantManagement();
-            orderResultDiv.classList.remove('error');
+        try {
+            await deleteDoc(doc(db, "restaurants", docId));
+            orderResultDiv.textContent = `Restaurante eliminado.`;
             orderResultDiv.style.color = 'green';
-            orderResultDiv.textContent = `Restaurante "${restaurantName}" eliminado.`;
-            if (editingRestaurantId === id) {
-                cancelEditRestaurant();
-            }
-
-            // Clear all data associated with this restaurant ID
-            const restaurantSpecificKeys = [
-                `${id}_menuItems`,
-                `${id}_orderHistory`,
-                `${id}_lastOrderNumber`,
-                `${id}_dailySummary`,
-                `${id}_topItemsSold`,
-                `restaurant_${id}_appSettings`, // Clear restaurant-specific settings
-                `restaurant_${id}_appVolume` // Clear restaurant-specific volume
-            ];
-            restaurantSpecificKeys.forEach(key => localStorage.removeItem(key));
-
-            if (currentUser && currentUser.id === id) {
-                logout(); // Log out if the current user's restaurant is deleted
-            }
-
-        } else {
-            orderResultDiv.classList.add('error');
+            renderRestaurantManagement();
+        } catch (error) {
+            console.error("Error deleting restaurant: ", error);
+            orderResultDiv.textContent = 'Error al eliminar el restaurante.';
             orderResultDiv.style.color = 'red';
-            orderResultDiv.textContent = 'Error: No se pudo encontrar el restaurante para eliminar.';
         }
     };
 
@@ -2462,12 +2358,12 @@ document.addEventListener('DOMContentLoaded', () => {
         editingRestaurantId = null;
         restaurantIdInput.value = '';
         restaurantNameManagementInput.value = '';
-        restaurantPasswordInput.value = '';
-        startDateInput.value = ''; // Clear start date
-        endDateInput.value = '';     // Clear end date
+        startDateInput.value = '';
+        endDateInput.value = '';
         addUpdateRestaurantBtn.innerHTML = '<i class="fas fa-plus-circle"></i> Añadir Restaurante';
         cancelEditRestaurantBtn.classList.add('hidden');
         restaurantIdInput.disabled = false;
+        orderResultDiv.textContent = ''; // Limpiar mensajes de resultado
     };
 
     addUpdateRestaurantBtn.addEventListener('click', addUpdateRestaurant);

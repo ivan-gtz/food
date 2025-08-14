@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ajustes</title>
+    <link rel="stylesheet" href="settings.css">
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="settings-modal">
+        <div class="settings-content">
+            <button id="close-settings-btn" class="close-button">&times;</button>
+            <h2>Ajustes</h2>
+            <div class="setting-item">
+                <h3>Volumen de Sonido</h3>
+                <input type="range" id="volume-control" min="0" max="1" step="0.1" value="1">
+            </div>
+            <div class="setting-item">
+                <h3>Nombre del Restaurante</h3>
+                <input type="text" id="restaurant-name-input" placeholder="Ej: La Esquina del Sabor">
+            </div>
+            <div class="setting-item">
+                <h3>Logo del Restaurante</h3>
+                <input type="file" id="restaurant-logo-upload" accept="image/*">
+                <p class="input-tip">Sube una imagen para el logo (PNG, JPG, GIF).</p>
+            </div>
+            <div class="setting-item">
+                <h3>Símbolo de Moneda</h3>
+                <input type="text" id="currency-symbol-input" placeholder="Ej: €" maxlength="3">
+                <p class="input-tip">Introduce el símbolo de la moneda (ej: $, €, £).</p>
+            </div>
+            <button id="save-settings-btn" class="save-button">Guardar Ajustes</button>
+            <p class="settings-tip">Aquí puedes configurar las opciones de la aplicación.</p>
+        </div>
+    </div>
+    <script type="module" src="settings.js"></script>
+</body>
+</html>
+

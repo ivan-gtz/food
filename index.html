@@ -1,0 +1,345 @@
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fasturno - Registro de Pedidos</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" href="logo de Fasturno.png" type="image/png">
+    <link rel="apple-touch-icon" href="logo de Fasturno.png">
+    <link rel="manifest" href="/manifest.json">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <!-- New: Splash Screen -->
+    <div id="splash-screen" class="splash-screen">
+        <img src="/logo de Fasturno.png" alt="Fasturno Logo" class="splash-logo">
+        <h1>Fasturno</h1>
+        <p>Cargando...</p>
+    </div>
+
+    <div class="container-wrapper hidden">
+        <aside id="sidebar" class="sidebar">
+            <div class="sidebar-header">
+                <img src="logo de Fasturno.png" alt="Fasturno Logo" class="sidebar-logo">
+                <h3>Fasturno</h3>
+            </div>
+            <nav class="sidebar-nav">
+                <ul>
+                    <li><a href="#" id="nav-home" class="active" data-section-id="home-section"><i class="fas fa-home"></i> Inicio</a></li>
+                    <li><a href="#" id="nav-history" data-section-id="order-history"><i class="fas fa-history"></i> Historial de Pedidos</a></li>
+                    <li><a href="#" id="nav-monitor"><i class="fas fa-tv"></i> Monitor</a></li>
+                    <li><a href="#" id="nav-detail-monitor"><i class="fas fa-clipboard-list"></i> Monitor de Detalles</a></li>
+                    <li><a href="#" id="nav-daily-summary" data-section-id="daily-summary"><i class="fas fa-chart-bar"></i> Resumen del Día</a></li>
+                    <li><a href="#" id="nav-top-items" data-section-id="top-items"><i class="fas fa-star"></i> Artículos Más Vendidos</a></li>
+                    <li><a href="#" id="nav-menu-management" data-section-id="menu-management"><i class="fas fa-edit"></i> Gestionar Menú</a></li>
+                    <li id="nav-restaurant-management"><a href="#" data-section-id="restaurant-management-section"><i class="fas fa-store"></i> Gestionar Restaurantes</a></li>
+                </ul>
+            </nav>
+            <div class="sidebar-footer">
+                <button id="settings-btn" class="settings-button"><i class="fas fa-cog"></i> Ajustes</button>
+                <button id="login-logout-btn" class="settings-button login-button"><i class="fas fa-sign-in-alt"></i> Iniciar Sesión</button>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <header class="main-header">
+                <button id="menu-toggle-btn" class="menu-toggle-button"><i class="fas fa-bars"></i></button>
+                <h1>Fasturno - Registro de Pedidos del Restaurante</h1>
+            </header>
+
+            <div class="content-section" id="home-section">
+                <div class="customer-info">
+                    <label for="customer-name">Nombre del Cliente:</label>
+                    <input type="text" id="customer-name" placeholder="Ingresa tu nombre">
+                </div>
+
+                <!-- New: Dine-in/Takeaway selection -->
+                <div class="dine-takeaway-selection">
+                    <label>Tipo de Pedido:</label>
+                    <div class="toggle-switch">
+                        <input type="radio" id="dine-in" name="order-type" value="Comer en Restaurante" checked>
+                        <label for="dine-in" class="toggle-label">Comer en Restaurante</label>
+                        <input type="radio" id="takeaway" name="order-type" value="Para Llevar">
+                        <label for="takeaway" class="toggle-label">Para Llevar</label>
+                        <div class="toggle-slider"></div>
+                    </div>
+                </div>
+
+                <div class="menu">
+                    <h2>Menú</h2>
+                    <div class="menu-categories">
+                        <div class="menu-category" id="category-platos">
+                            <h3>Platos</h3>
+                            <ul id="main-menu-list-platos">
+                                <!-- Dish items will be loaded here by JavaScript -->
+                            </ul>
+                        </div>
+                        <div class="menu-category" id="category-bebidas">
+                            <h3>Bebidas</h3>
+                            <ul id="main-menu-list-bebidas">
+                                <!-- Drink items will be loaded here by JavaScript -->
+                            </ul>
+                        </div>
+                        <div class="menu-category" id="category-postres">
+                            <h3>Postres</h3>
+                            <ul id="main-menu-list-postres">
+                                <!-- Dessert items will be loaded here by JavaScript -->
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="total-price-display">
+                        <label>Total:</label>
+                        <span id="total-price">0.00</span> <span id="currency-display"></span>
+                    </div>
+                </div>
+
+                <!-- New: Optional notes field -->
+                <div class="order-notes">
+                    <label for="order-notes-input">Notas Adicionales (Opcional):</label>
+                    <textarea id="order-notes-input" placeholder="Ej: Sin cebolla, con extra de queso..."></textarea>
+                </div>
+
+                <button id="calculate-btn"><i class="fas fa-calculator"></i> Calcular</button>
+                
+                <button id="place-order-btn"><i class="fas fa-utensils"></i> Realizar Pedido</button>
+
+                <div id="order-result">
+                    <!-- The order number and confirmation will be displayed here -->
+                </div>
+
+                <!-- New: Print Invoice Button -->
+                <button id="print-invoice-btn" class="hidden"><i class="fas fa-receipt"></i> Imprimir Factura</button>
+            </div>
+
+            <!-- Section for Order History -->
+            <div id="order-history" class="content-section hidden">
+                <h2>Historial de Pedidos</h2>
+                <ul id="history-list">
+                    <!-- Order history will be displayed here, including status -->
+                </ul>
+
+                <!-- Pagination Controls -->
+                <div id="history-pagination-controls" class="pagination-controls">
+                    <!-- Pagination buttons and info will be added here by JavaScript -->
+                </div>
+
+                <!-- New button for resetting history -->
+                <button id="reset-history-btn"><i class="fas fa-trash-alt"></i> Restablecer Historial de Pedidos</button>
+                <!-- New: Download Order History Button -->
+                <button id="download-history-btn" class="download-button"><i class="fas fa-download"></i> Descargar Historial</button>
+            </div>
+
+            <!-- New Section for Menu Management -->
+            <div id="menu-management" class="content-section hidden">
+                <h2>Gestionar Menú</h2>
+                <div class="menu-item-input">
+                    <label for="item-name-input">Nombre del Plato/Bebida:</label>
+                    <input type="text" id="item-name-input" placeholder="Ej: Sopa de Tomate">
+                    <label for="item-price-input">Precio:</label>
+                    <input type="number" id="item-price-input" placeholder="Ej: 12.50" step="0.01" min="0">
+                    <label for="item-type-input">Tipo:</label>
+                    <select id="item-type-input">
+                        <option value="dish">Plato</option>
+                        <option value="drink">Bebida</option>
+                        <option value="dessert">Postre</option>
+                    </select>
+                    <button id="add-update-item-btn"><i class="fas fa-plus-circle"></i> Añadir Plato</button>
+                    <button id="cancel-edit-btn" class="hidden"><i class="fas fa-times-circle"></i> Cancelar Edición</button>
+                </div>
+
+                <div id="management-menu-list">
+                    <!-- Current menu items with edit/delete options will be listed here by JavaScript -->
+                </div>
+
+                <!-- New button for resetting menu -->
+                <button id="reset-menu-btn"><i class="fas fa-undo"></i> Restablecer Menú Predeterminado</button>
+            </div>
+
+            <!-- New Section for Daily Summary -->
+            <div id="daily-summary" class="content-section hidden">
+                <h2>Resumen de Pedidos del Día</h2>
+                <p>Total de pedidos recibidos hoy: <span id="summary-total-orders">0</span></p>
+                <p>Ingresos totales por pedidos (sin extra): <span id="summary-total-revenue">0.00</span> <span id="summary-currency-display"></span></p>
+                <p>Ingresos por pagos extra: <span id="summary-extra-revenue">0.00</span> <span id="summary-currency-display"></span></p>
+                <button id="reset-daily-summary-btn"><i class="fas fa-sync-alt"></i> Reiniciar Resumen del Día</button>
+                <!-- New: Download Summary Button -->
+                <button id="download-summary-btn" class="download-button"><i class="fas fa-download"></i> Descargar Resumen</button>
+            </div>
+
+            <!-- New Section for Top Items -->
+            <div id="top-items" class="content-section hidden">
+                <h2>Artículos Más Vendidos</h2>
+                <canvas id="topItemsChart"></canvas>
+                <p id="no-top-items-message" class="hidden">No hay datos suficientes para generar el gráfico de artículos más vendidos.</p>
+                <button id="reset-top-items-btn"><i class="fas fa-redo-alt"></i> Reiniciar Datos de Artículos Vendidos</button>
+                <!-- New: Download Top Items Button -->
+                <button id="download-top-items-btn" class="download-button"><i class="fas fa-download"></i> Descargar Artículos</button>
+
+                <!-- New: Order Type Distribution Chart -->
+                <h3 class="chart-section-title">Distribución de Pedidos por Tipo</h3>
+                <canvas id="orderTypeChart"></canvas>
+                <p id="no-order-type-stats-message" class="hidden">No hay datos suficientes para generar el gráfico de distribución de pedidos.</p>
+                <!-- New: Download Order Type Distribution Button -->
+                <button id="download-order-type-btn" class="download-button"><i class="fas fa-download"></i> Descargar Distribución de Pedidos</button>
+            </div>
+
+            <!-- New Section for Restaurant Management (Admin Only) -->
+            <div id="restaurant-management-section" class="content-section hidden">
+                <h2>Gestionar Restaurantes</h2>
+                <div class="restaurant-input">
+                    <label for="restaurant-id-input">ID de Restaurante:</label>
+                    <input type="text" id="restaurant-id-input" placeholder="Ej: R123">
+                    <label for="restaurant-name-management-input">Nombre de Restaurante:</label>
+                    <input type="text" id="restaurant-name-management-input" placeholder="Ej: El Buen Sabor">
+                    <label for="restaurant-password-input">Contraseña:</label>
+                    <div class="password-input-wrapper">
+                        <input type="password" id="restaurant-password-input" placeholder="Contraseña para el restaurante">
+                        <!-- New: Password visibility toggle -->
+                        <span class="password-toggle" id="toggle-restaurant-password">
+                            <i class="fas fa-eye"></i>
+                        </span>
+                    </div>
+                    <!-- New: Start and End Date Inputs -->
+                    <label for="start-date-input">Fecha de Inicio:</label>
+                    <input type="date" id="start-date-input">
+                    <label for="end-date-input">Fecha de Finalización:</label>
+                    <input type="date" id="end-date-input">
+                    <button id="add-update-restaurant-btn"><i class="fas fa-plus-circle"></i> Añadir Restaurante</button>
+                    <button id="cancel-edit-restaurant-btn" class="hidden"><i class="fas fa-times-circle"></i> Cancelar Edición</button>
+                </div>
+                <div id="restaurant-list-management">
+                    <!-- Restaurant list will be loaded here -->
+                </div>
+            </div>
+
+            <footer>
+                <p>Fasturno &copy; <span id="current-year"></span></p>
+                <!-- New: Admin Site Link -->
+                <p><a href="https://fasturno.jarhvis.com/" target="_blank" rel="noopener noreferrer" class="admin-site-link">
+                    <i class="fas fa-external-link-alt"></i> Sitio Web del Administrador
+                </a></p>
+            </footer>
+
+            <!-- New: Floating Total Button -->
+            <div id="floating-total" class="floating-total hidden">
+                <i class="fas fa-shopping-cart"></i>
+                <span id="floating-total-amount">0.00</span> <span id="floating-currency-display">$</span>
+            </div>
+        </main>
+    </div>
+
+    <!-- The modal container for settings, initially hidden -->
+    <div id="settings-modal-overlay" class="settings-modal-overlay hidden">
+        <iframe id="settings-iframe" src="settings.html" frameborder="0"></iframe>
+    </div>
+
+    <!-- New: Edit Order Modal -->
+    <div id="edit-order-modal-overlay" class="modal-overlay hidden">
+        <div class="modal-content">
+            <button id="close-edit-order-modal-btn" class="close-button">&times;</button>
+            <h2>Editar Pedido <span id="edit-order-id"></span></h2>
+            <div class="form-group">
+                <label for="edit-customer-name">Nombre del Cliente:</label>
+                <input type="text" id="edit-customer-name" placeholder="Ingresa el nombre">
+            </div>
+            <div class="form-group">
+                <label>Tipo de Pedido:</label>
+                <div class="toggle-switch">
+                    <input type="radio" id="edit-dine-in" name="edit-order-type" value="Comer en Restaurante">
+                    <label for="edit-dine-in" class="toggle-label">Comer en Restaurante</label>
+                    <input type="radio" id="edit-takeaway" name="edit-order-type" value="Para Llevar">
+                    <label for="edit-takeaway" class="toggle-label">Para Llevar</label>
+                    <div class="toggle-slider"></div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="edit-order-items">Items del Pedido:</label>
+                <div class="menu-categories edit-order-categories">
+                    <div class="menu-category edit-order-category" id="edit-category-platos">
+                        <h3>Platos</h3>
+                        <ul id="edit-order-items-list-platos" class="edit-items-list">
+                            <!-- Checkboxes for dish menu items will be loaded here -->
+                        </ul>
+                    </div>
+                    <div class="menu-category edit-order-category" id="edit-category-bebidas">
+                        <h3>Bebidas</h3>
+                        <ul id="edit-order-items-list-bebidas" class="edit-items-list">
+                            <!-- Checkboxes for drink menu items will be loaded here -->
+                        </ul>
+                    </div>
+                    <div class="menu-category edit-order-category" id="edit-category-postres">
+                        <h3>Postres</h3>
+                        <ul id="edit-order-items-list-postres" class="edit-items-list">
+                            <!-- Checkboxes for dessert menu items will be loaded here -->
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="edit-order-notes">Notas Adicionales (Opcional):</label>
+                <textarea id="edit-order-notes" placeholder="Ej: Sin cebolla, con extra de queso..."></textarea>
+            </div>
+            <div class="form-group">
+                <label for="edit-order-status">Estado del Pedido:</label>
+                <select id="edit-order-status">
+                    <option value="Preparando">Preparando</option>
+                    <option value="Listo">Listo</option>
+                    <option value="Recibido">Recibido</option>
+                </select>
+            </div>
+            <div class="form-group total-price-display">
+                <label>Total del Pedido:</label>
+                <span id="edit-order-total-price">0.00</span> <span id="edit-currency-display"></span>
+            </div>
+            <button id="save-edited-order-btn" class="confirm-button"><i class="fas fa-save"></i> Guardar Cambios</button>
+            <p id="edit-order-message" class="modal-message hidden"></p>
+        </div>
+    </div>
+
+    <!-- New: Login Modal -->
+    <div id="login-modal-overlay" class="modal-overlay active">
+        <div class="modal-content">
+            <button id="close-login-modal-btn" class="close-button">&times;</button>
+            <img src="/logo de Fasturno.png" alt="Fasturno Logo" class="login-logo">
+            <h2>Iniciar Sesión</h2>
+            <div class="form-group">
+                <label for="username-input">Usuario:</label>
+                <input type="text" id="username-input" placeholder="Nombre de usuario">
+            </div>
+            <div class="form-group">
+                <label for="password-input">Contraseña:</label>
+                <div class="password-input-wrapper">
+                    <input type="password" id="password-input" placeholder="Contraseña">
+                    <!-- New: Password visibility toggle -->
+                    <span class="password-toggle" id="toggle-login-password">
+                        <i class="fas fa-eye"></i>
+                    </span>
+                </div>
+            </div>
+            <button id="login-btn" class="confirm-button"><i class="fas fa-sign-in-alt"></i> Iniciar Sesión</button>
+            <p id="login-message" class="modal-message hidden"></p>
+            <p id="login-attempts-message" class="modal-message hidden"></p>
+        </div>
+    </div>
+
+    <script type="module" src="script.js"></script>
+    <script type="module">
+        import 'https://cdn.jsdelivr.net/npm/chart.js';
+        import 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+        import 'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.14/jspdf.plugin.autotable.min.js';
+
+        // Register service worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js')
+                    .then(registration => {
+                        console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                    })
+                    .catch(err => {
+                        console.log('ServiceWorker registration failed: ', err);
+                    });
+            });
+        }
+    </script>
+</body>
+</html>

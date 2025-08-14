@@ -1,0 +1,367 @@
+/* Add security modal styles */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1003;
+    opacity: 0;
+    transform: scale(0.8);
+    transition: opacity 0.3s ease-out, transform 0.3s ease-out;
+    pointer-events: none;
+}
+
+.modal-overlay.active {
+    opacity: 1;
+    transform: scale(1);
+    pointer-events: auto;
+}
+
+.modal-content {
+    background: linear-gradient(135deg, #FFD700 0%, #FF8C00 100%);
+    padding: 40px;
+    border-radius: 20px;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+    border: 4px solid #D32F2F;
+    font-family: 'Fredoka One', cursive;
+    color: #D32F2F;
+    max-width: 450px;
+    width: 90%;
+    text-align: center;
+    animation: slideUp 0.3s ease;
+}
+
+.modal-content h2 {
+    font-size: 2.2em;
+    margin-bottom: 15px;
+    color: #D32F2F;
+}
+
+.modal-content p {
+    font-size: 1.2em;
+    color: #333;
+    margin-bottom: 25px;
+    line-height: 1.4;
+}
+
+.modal-content .form-group {
+    margin-bottom: 20px;
+}
+
+.modal-content input[type="text"] {
+    width: calc(100% - 24px);
+    padding: 12px;
+    border: 2px solid #FF8C00;
+    border-radius: 8px;
+    font-size: 1.1em;
+    text-align: center;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+    transition: border-color 0.3s ease;
+}
+
+.modal-content input[type="text"]:focus {
+    border-color: #FF4500;
+    outline: none;
+    box-shadow: 0 0 8px rgba(255, 69, 0, 0.3);
+}
+
+.modal-content .confirm-button {
+    background: linear-gradient(135deg, #4CAF50 0%, #8BC34A 100%);
+    color: white;
+    padding: 12px 25px;
+    border: none;
+    border-radius: 25px;
+    font-size: 1.2em;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin: 10px;
+    font-family: 'Open Sans', sans-serif;
+    font-weight: 600;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-content .confirm-button:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.25);
+}
+
+.modal-message {
+    margin-top: 15px;
+    font-size: 1.1em;
+    font-weight: 600;
+    color: #D32F2F;
+}
+
+.modal-message.error {
+    color: #D32F2F;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(-50px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+body {
+    font-family: 'Open Sans', sans-serif;
+    background: linear-gradient(135deg, #A8C0FF 0%, #392B58 100%); /* Blue to Deep Purple/Indigo for a calm, professional look */
+    margin: 0;
+    padding: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start; /* Align to top */
+    min-height: 100vh;
+    color: #f0f0f0; /* Light text color */
+}
+
+.monitor-details-container {
+    background-color: rgba(255, 255, 255, 0.95); /* Slightly transparent white */
+    padding: 35px;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    width: 100%;
+    max-width: 1000px; /* Wider for more details */
+    text-align: center;
+    border: 3px solid #6A1B9A; /* Deep purple accent */
+    color: #333; /* Dark text for content inside container */
+}
+
+.monitor-details-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 30px;
+    position: relative;
+}
+
+#restaurant-logo-details {
+    max-width: 100px;
+    max-height: 100px;
+    margin-bottom: 15px;
+    border-radius: 0;
+    object-fit: contain;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    border: 3px solid #9C27B0; /* Purple accent */
+}
+
+#restaurant-logo-details.hidden {
+    display: none;
+}
+
+h2 {
+    color: #4A148C; /* Even deeper purple */
+    font-size: 2.8em;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 10px;
+}
+
+.monitor-details-tip {
+    font-size: 1.1em;
+    color: #6A1B9A;
+    font-style: italic;
+    margin-top: 5px;
+}
+
+#detail-monitor-list {
+    display: flex;
+    flex-direction: column; /* Stack orders vertically */
+    gap: 20px;
+    padding: 0;
+    list-style: none;
+}
+
+.detail-order-card {
+    background-color: #fff;
+    border: 2px solid #E0BBE4; /* Lighter purple border */
+    border-radius: 10px;
+    padding: 20px;
+    text-align: left;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.detail-order-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+}
+
+.order-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px dashed #D3D3D3;
+}
+
+.order-card-header h3 {
+    margin: 0;
+    font-size: 1.8em;
+    color: #6A1B9A; /* Deep purple for order number */
+    font-weight: 700;
+}
+
+.order-card-header .order-status-tag {
+    padding: 8px 15px;
+    border-radius: 20px;
+    font-weight: bold;
+    color: white;
+    font-size: 0.9em;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.order-card-header .order-status-tag.status-Preparando {
+    background-color: #FFA000; /* Orange */
+}
+
+.order-card-header .order-status-tag.status-Listo {
+    background-color: #4CAF50; /* Green */
+}
+
+.order-card-content p {
+    margin: 8px 0;
+    font-size: 1.1em;
+    color: #555;
+}
+
+.order-card-content ul {
+    list-style: none;
+    padding: 0;
+    margin-top: 10px;
+    border-top: 1px solid #eee;
+    padding-top: 10px;
+}
+
+.order-card-content ul li {
+    background-color: #f9f9f9;
+    padding: 8px 12px;
+    border-radius: 5px;
+    margin-bottom: 5px;
+    font-size: 1em;
+    color: #333;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.order-card-content .order-notes-display {
+    font-style: italic;
+    color: #777;
+    border-top: 1px dashed #D3D3D3;
+    padding-top: 10px;
+    margin-top: 15px;
+    font-size: 0.95em;
+    white-space: pre-wrap;
+}
+
+.order-card-actions {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px dashed #D3D3D3;
+    text-align: right;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+}
+
+.order-card-actions label {
+    font-size: 1em;
+    color: #555;
+    font-weight: 600;
+    margin-right: 10px;
+}
+
+.order-status-select {
+    padding: 8px 12px;
+    border: 1px solid #9C27B0; /* Purple border */
+    border-radius: 5px;
+    font-size: 1em;
+    cursor: pointer;
+    background-color: #fff;
+    color: #333;
+    appearance: none; /* Remove default arrow */
+    background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%239C27B0%22%20d%3D%22M287%2069.9a14.8%2014.8%200%200%200-21.2%200l-123.6%20123.6L21.2%2069.9a14.8%2014.8%200%200%200-21.2%2021.2l134.2%20134.2a14.8%2014.8%200%200%200%2021.2%200L287%2091.1a14.8%2014.8%200%200%200%200-21.2z%22%2F%3E%3C%2Fsvg%3E');
+    background-repeat: no-repeat;
+    background-position: right 8px top 50%;
+    background-size: 12px auto;
+    transition: border-color 0.3s ease;
+}
+
+.order-status-select:focus {
+    outline: none;
+    border-color: #6A1B9A;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .monitor-details-container {
+        padding: 25px;
+        max-width: 90%;
+    }
+    h2 {
+        font-size: 2.2em;
+    }
+    .order-card-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .order-card-header h3 {
+        margin-bottom: 10px;
+        font-size: 1.5em;
+    }
+    .order-card-header .order-status-tag {
+        align-self: flex-end; /* Push tag to the right when stacked */
+    }
+    .order-card-actions {
+        flex-direction: column;
+        align-items: flex-end;
+    }
+    .order-card-actions label {
+        margin-bottom: 10px;
+        margin-right: 0;
+    }
+    .order-status-select {
+        width: 100%;
+        max-width: 200px; /* Limit width on smaller screens */
+    }
+}
+
+@media (max-width: 480px) {
+    .monitor-details-container {
+        padding: 15px;
+    }
+    h2 {
+        font-size: 1.8em;
+    }
+    .detail-order-card {
+        padding: 15px;
+    }
+    .order-card-content p,
+    .order-card-content ul li {
+        font-size: 0.9em;
+    }
+    .order-card-content .order-notes-display {
+        font-size: 0.85em;
+    }
+    .order-status-select {
+        width: 100%;
+    }
+}

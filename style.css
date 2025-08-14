@@ -1,0 +1,2549 @@
+@import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Open+Sans:wght@400;600;700&display=swap');
+
+body {
+    font-family: 'Open Sans', sans-serif;
+    background: linear-gradient(135deg, #FFD700 0%, #FF8C00 100%); /* Gold to Dark Orange */
+    margin: 0;
+    padding: 0; /* Remove padding from body */
+    display: flex;
+    justify-content: center;
+    align-items: flex-start; /* Align to top */
+    min-height: 100vh;
+    color: #333;
+}
+
+/* New: Wrapper for Sidebar and Main Content */
+.container-wrapper {
+    display: flex;
+    width: 100%;
+    min-height: 100vh;
+    background-color: #fefefe; /* Main background for content area */
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    border: 4px solid #FF4500; /* OrangeRed border */
+    border-radius: 15px;
+    margin: 20px; /* Add margin to the whole wrapper */
+    overflow: hidden; /* Ensure content stays within bounds */
+    position: relative; /* For toggle button */
+}
+
+/* New: Sidebar Styles */
+.sidebar {
+    width: 250px; /* Fixed width for sidebar */
+    background: linear-gradient(to bottom, #D32F2F, #B71C1C); /* Deep Red gradient */
+    color: white;
+    padding: 20px 0;
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.3);
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.3s ease-in-out;
+    flex-shrink: 0; /* Prevent sidebar from shrinking */
+    position: relative;
+    z-index: 2; /* Above main content */
+    overflow-y: auto; /* Enable vertical scrolling */
+    -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+}
+
+.sidebar-header {
+    text-align: center;
+    padding: 15px 0 25px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    margin-bottom: 20px;
+}
+
+.sidebar-logo {
+    width: 80px;
+    height: 80px;
+    object-fit: contain;
+    margin-bottom: 10px;
+}
+
+.sidebar-header h3 {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.8em;
+    color: #FFD700; /* Gold */
+    margin: 0;
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.sidebar-nav ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.sidebar-nav li {
+    margin-bottom: 5px;
+}
+
+.sidebar-nav a {
+    display: flex;
+    align-items: center;
+    padding: 15px 25px;
+    color: white;
+    text-decoration: none;
+    font-size: 1.1em;
+    font-weight: 600;
+    transition: background-color 0.2s ease, padding-left 0.2s ease;
+    border-left: 5px solid transparent;
+}
+
+.sidebar-nav a i {
+    margin-right: 15px;
+    font-size: 1.3em;
+}
+
+.sidebar-nav a:hover {
+    background-color: rgba(255, 255, 255, 0.15);
+    border-left-color: #FFD700; /* Gold accent on hover */
+    padding-left: 30px;
+}
+
+.sidebar-nav a.active {
+    background-color: rgba(255, 255, 255, 0.25);
+    border-left-color: #FFD700; /* Gold accent for active item */
+    padding-left: 30px;
+}
+
+.sidebar-footer {
+    margin-top: auto; /* Pushes the footer to the bottom */
+    padding: 20px 0;
+    text-align: center;
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Settings Button (moved inside sidebar-footer) */
+.settings-button {
+    background-color: #FFD700; /* Gold */
+    color: #D32F2F; /* Deep Red */
+    border: 2px solid #FF8C00; /* Darker Orange */
+    border-radius: 8px; /* Slightly rounded rectangle */
+    padding: 10px 20px;
+    font-size: 1.1em;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    transition: transform 0.3s ease, background-color 0.3s ease, box-shadow 0.3s ease;
+    font-weight: 700;
+    margin: 5px; /* Add margin for spacing between buttons */
+}
+
+.settings-button.login-button {
+    background-color: #673AB7; /* Deep Purple */
+    color: white;
+    border: 2px solid #512DA8; /* Darker Purple */
+}
+
+.settings-button.login-button:hover {
+    background-color: #7E57C2; /* Lighter Purple */
+}
+
+.settings-button i {
+    margin-right: 8px;
+}
+
+.settings-button:hover {
+    background-color: #FFC107; /* Lighter Gold */
+    transform: translateY(-2px); /* Slight lift */
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+}
+
+.settings-button:active {
+    transform: translateY(0);
+    background-color: #FFA000;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+/* New: Style for admin site link */
+.admin-site-link {
+    color: #D32F2F;
+    font-weight: 600;
+    text-decoration: none;
+    transition: color 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.9em;
+}
+
+.admin-site-link:hover {
+    color: #B71C1C;
+    text-decoration: underline;
+}
+
+/* New: Main Content Area */
+.main-content {
+    flex-grow: 1;
+    padding: 20px 40px; /* Padding for the main content area */
+    position: relative;
+    z-index: 1;
+    overflow-y: auto; /* Enable scrolling for content if it overflows */
+    -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+}
+
+/* New: Header within Main Content */
+.main-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 30px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #eee;
+    justify-content: center; /* Center the title by default */
+    position: relative;
+}
+
+.main-header h1 {
+    margin: 0;
+    flex-grow: 1;
+    text-align: center;
+}
+
+/* New: Menu Toggle Button for Mobile */
+.menu-toggle-button {
+    display: none; /* Hidden by default on larger screens */
+    background-color: #FF8C00; /* Dark Orange */
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 15px;
+    font-size: 1.5em;
+    cursor: pointer;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    transition: background-color 0.3s ease, transform 0.3s ease;
+    position: absolute; /* Position absolutely within the main-header */
+    left: 0; /* Align to the left */
+    z-index: 3; /* Ensure it's above other elements in the header */
+}
+
+.menu-toggle-button:hover {
+    background-color: #FF5722;
+    transform: scale(1.05);
+}
+
+.menu-toggle-button i {
+    margin: 0; /* No margin for single icon */
+}
+
+/* General Content Section Styling */
+.content-section {
+    padding-bottom: 20px; /* Consistent bottom padding */
+    position: relative;
+    z-index: 1;
+}
+
+/* Existing container styles adapted for content-section */
+.customer-info,
+.dine-takeaway-selection,
+.order-notes,
+.menu,
+#place-order-btn,
+#print-invoice-btn,
+#order-result,
+#order-history,
+#menu-management,
+#daily-summary,
+#top-items,
+#restaurant-management-section,
+#weekly-stats { /* Added weekly stats section */
+    max-width: 600px; /* Keep consistent max width for content */
+    margin-left: auto; /* Center content within main-content */
+    margin-right: auto;
+    margin-bottom: 30px;
+    padding: 0 20px; /* Default horizontal padding */
+}
+
+.menu {
+    padding: 20px;
+}
+
+#place-order-btn, #print-invoice-btn {
+    display: block; /* Make them block to take full width of container */
+    width: calc(100% - 40px); /* Adjust for padding */
+    margin-top: 20px;
+    margin-bottom: 10px;
+}
+
+h1, h2 {
+    font-family: 'Fredoka One', cursive; /* Playful, bold font */
+    color: #D32F2F; /* Deep Red */
+    margin-bottom: 25px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+    position: relative;
+    z-index: 1;
+}
+
+h1 {
+    font-size: 3em;
+    letter-spacing: 2px;
+}
+
+h2 {
+    font-size: 2.2em;
+    letter-spacing: 1px;
+}
+
+/* Settings Modal Overlay and Iframe (moved to body level, not container-wrapper) */
+.settings-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6); /* Darker overlay */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000; /* High z-index to cover everything */
+
+    /* Initial state for transition */
+    opacity: 0;
+    transform: scale(0.8);
+    transition: opacity 0.3s ease-out, transform 0.3s ease-out;
+    pointer-events: none; /* Allows clicks to pass through when hidden */
+}
+
+.settings-modal-overlay.active {
+    opacity: 1;
+    transform: scale(1);
+    pointer-events: auto; /* Enable clicks when active */
+}
+
+.settings-modal-overlay iframe {
+    width: 100%; /* Covers 100% of the screen */
+    height: 100%; /* Covers 100% of the screen */
+    max-width: none; /* Remove max width */
+    max-height: none; /* Remove max height */
+    border: none;
+    border-radius: 0; /* Remove border-radius for full screen */
+    box-shadow: none; /* Remove shadow for full screen */
+    background-color: transparent; /* Allows the iframe's own background to show */
+}
+
+/* Add these styles to unify all popup designs */
+.modal-overlay,
+.calculation-modal-overlay,
+.logout-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1003;
+    animation: fadeIn 0.3s ease;
+}
+
+.modal-content,
+.calculation-modal-content,
+.logout-modal-content {
+    background: linear-gradient(135deg, #FFD700 0%, #FF8C00 100%);
+    border-radius: 20px;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+    border: 3px solid #D32F2F;
+    font-family: 'Fredoka One', cursive;
+    color: #D32F2F;
+    max-width: 450px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+    animation: slideUp 0.3s ease;
+}
+
+.modal-header,
+.calculation-modal-header,
+.logout-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #FF8C00;
+}
+
+.modal-header h2,
+.calculation-modal-header h3,
+.logout-modal-content h3 {
+    font-family: 'Fredoka One', cursive;
+    color: #D32F2F;
+    font-size: 1.8em;
+    margin: 0;
+}
+
+.close-button,
+.close-modal,
+.logout-cancel,
+.logout-confirm {
+    background: none;
+    border: none;
+    font-size: 2em;
+    color: #D32F2F;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+.close-button:hover,
+.close-modal:hover {
+    transform: rotate(90deg);
+}
+
+.modal-body,
+.calculation-modal-body,
+.logout-modal-content p {
+    color: #333;
+    font-size: 1.1em;
+    line-height: 1.5;
+}
+
+.modal-footer,
+.logout-buttons {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    margin-top: 25px;
+}
+
+.confirm-button,
+.logout-confirm,
+.logout-cancel {
+    background: linear-gradient(135deg, #4CAF50 0%, #8BC34A 100%);
+    color: white;
+    padding: 12px 30px;
+    border: none;
+    border-radius: 25px;
+    font-size: 1.1em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.logout-cancel {
+    background: linear-gradient(135deg, #f0f0f0 0%, #e0e0e0 100%);
+    color: #333;
+    border: 2px solid #ccc;
+}
+
+.confirm-button:hover,
+.logout-confirm:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+.logout-cancel:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideUp {
+    from { transform: translateY(50px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+/* Ensure consistent styling for all modals across the application */
+#settings-modal-overlay {
+    background: rgba(0, 0, 0, 0.7); /* Match other overlays */
+}
+
+.settings-modal-overlay.active {
+    background: rgba(0, 0, 0, 0.7); /* Match other overlays */
+}
+
+/* Consistent input styling in modals */
+.modal-content input,
+.modal-content textarea,
+.modal-content select {
+    border: 2px solid #FF8C00 !important;
+    border-radius: 8px !important;
+    font-family: 'Open Sans', sans-serif !important;
+    background: white !important;
+}
+
+.modal-content input:focus,
+.modal-content textarea:focus,
+.modal-content select:focus {
+    border-color: #FF4500 !important;
+    box-shadow: 0 0 8px rgba(255, 69, 0, 0.3) !important;
+    outline: none !important;
+}
+
+/* Consistent button styling in modals */
+.modal-content button[type="submit"],
+.modal-content .confirm-button {
+    background: linear-gradient(135deg, #4CAF50 0%, #8BC34A 100%) !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 25px !important;
+    font-family: 'Fredoka One', cursive !important;
+    font-weight: 600 !important;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2) !important;
+}
+
+.modal-content button[type="submit"]:hover,
+.modal-content .confirm-button:hover {
+    transform: translateY(-3px) !important;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3) !important;
+}
+
+.customer-info {
+    text-align: left;
+    margin-bottom: 30px;
+    position: relative;
+    z-index: 1;
+}
+
+.customer-info label {
+    display: block;
+    margin-bottom: 10px;
+    font-size: 1.2em;
+    color: #555;
+    font-weight: 600;
+}
+
+.customer-info input[type="text"] {
+    width: calc(100% - 24px);
+    padding: 12px;
+    border: 2px solid #FF8C00; /* Darker Orange */
+    border-radius: 8px;
+    font-size: 1.1em;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+    transition: border-color 0.3s ease;
+}
+
+.customer-info input[type="text"]:focus {
+    border-color: #FF4500; /* OrangeRed on focus */
+    outline: none;
+    box-shadow: 0 0 8px rgba(255, 69, 0, 0.3);
+}
+
+/* Style for Dine-in/Takeaway selection */
+.dine-takeaway-selection {
+    text-align: left;
+    margin-bottom: 30px;
+    position: relative;
+    z-index: 1;
+}
+
+.dine-takeaway-selection label:not(.toggle-label) {
+    display: block;
+    margin-bottom: 10px;
+    font-size: 1.2em;
+    color: #555;
+    font-weight: 600;
+}
+
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 280px; /* Wider for text */
+    height: 50px; /* Taller */
+    background-color: #f0f0f0;
+    border-radius: 25px; /* Half of height for perfect pill shape */
+    box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.1);
+    cursor: pointer;
+    overflow: hidden;
+    transition: background-color 0.3s ease;
+}
+
+.toggle-switch input[type="radio"] {
+    display: none; /* Hide default radio buttons */
+}
+
+.toggle-switch .toggle-label {
+    position: absolute;
+    top: 0;
+    width: 50%;
+    line-height: 50px; /* Vertically center text */
+    text-align: center;
+    font-size: 1.1em;
+    font-weight: 600;
+    transition: color 0.3s ease;
+    z-index: 2; /* Labels above slider */
+}
+
+.toggle-switch .toggle-label[for="dine-in"],
+.toggle-switch .toggle-label[for="edit-dine-in"] {
+    left: 0;
+}
+
+.toggle-switch .toggle-label[for="takeaway"],
+.toggle-switch .toggle-label[for="edit-takeaway"] {
+    right: 0;
+}
+
+.toggle-switch .toggle-slider {
+    position: absolute;
+    top: 5px; /* Padding from top/bottom */
+    left: 5px; /* Padding from left/right */
+    width: calc(50% - 5px); /* Half width minus padding */
+    height: calc(100% - 10px); /* Full height minus padding */
+    background: linear-gradient(135deg, #FFD700 0%, #FF8C00 100%); /* Gold to Dark Orange */
+    border-radius: 20px; /* Rounded corners for slider */
+    transition: transform 0.3s ease, background 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    z-index: 1; /* Slider below labels */
+}
+
+.toggle-switch input[type="radio"]:checked + .toggle-label {
+    color: #333; /* Darker text for selected label */
+}
+
+.toggle-switch input[type="radio"]#takeaway:checked ~ .toggle-slider,
+.toggle-switch input[type="radio"]#edit-takeaway:checked ~ .toggle-slider {
+    transform: translateX(100%); /* Move slider to the right */
+}
+
+/* Style for Order Notes section */
+.order-notes {
+    text-align: left;
+    margin-bottom: 30px;
+    position: relative;
+    z-index: 1;
+}
+
+.order-notes label {
+    display: block;
+    margin-bottom: 10px;
+    font-size: 1.2em;
+    color: #555;
+    font-weight: 600;
+}
+
+.order-notes textarea {
+    width: calc(100% - 24px); /* Adjust for padding and border */
+    padding: 12px;
+    border: 2px solid #FF8C00;
+    border-radius: 8px;
+    font-size: 1.1em;
+    resize: vertical; /* Allow vertical resizing only */
+    min-height: 80px; /* Minimum height */
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+    transition: border-color 0.3s ease;
+}
+
+.order-notes textarea:focus {
+    border-color: #FF4500;
+    outline: none;
+    box-shadow: 0 0 8px rgba(255, 69, 0, 0.3);
+}
+
+.menu {
+    text-align: left;
+    margin-bottom: 30px;
+    border: 2px solid #FFD700; /* Gold border */
+    padding: 20px;
+    border-radius: 10px;
+    background-color: #fffaf0; /* Light cream background */
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    position: relative;
+    z-index: 1;
+}
+
+/* New: Menu Categories Layout */
+.menu-categories {
+    display: grid;
+    grid-template-columns: 1fr; /* Default to single column */
+    gap: 20px;
+    margin-top: 20px;
+    margin-bottom: 20px;
+}
+
+@media (min-width: 600px) {
+    .menu-categories {
+        grid-template-columns: 1fr 1fr; /* Two columns on larger screens */
+    }
+}
+
+.menu-category {
+    background-color: #fefefe;
+    border: 1px solid #ffe082; /* Light gold border */
+    border-radius: 8px;
+    padding: 15px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
+}
+
+.menu-category h3 {
+    font-family: 'Fredoka One', cursive;
+    color: #FF4500; /* OrangeRed */
+    margin-top: 0;
+    margin-bottom: 15px;
+    font-size: 1.6em;
+    text-align: center;
+    border-bottom: 1px dashed #FFD700;
+    padding-bottom: 10px;
+}
+
+.menu-category ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.menu-category li {
+    margin-bottom: 12px;
+    background-color: #fefefe;
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: 1px solid #eee;
+    transition: background-color 0.2s ease;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.menu-category li:hover {
+    background-color: #fff0e0; /* Lighter orange tint on hover */
+}
+
+.menu-category li input[type="checkbox"] {
+    margin-right: 15px;
+    width: 22px;
+    height: 22px;
+    cursor: pointer;
+    accent-color: #FF4500; /* Custom checkbox color */
+    flex-shrink: 0;
+}
+
+.menu-category li label {
+    font-size: 1.15em;
+    color: #333;
+    flex-grow: 1;
+    cursor: pointer;
+    font-weight: 500;
+}
+
+.total-price-display {
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px dashed #FFD700;
+    text-align: right;
+    font-size: 1.5em;
+    font-weight: bold;
+    color: #D32F2F; /* Deep Red */
+}
+
+.total-price-display label {
+    margin-right: 10px;
+}
+
+/* Extra Payment Button inside Menu */
+.menu-action-button {
+    background: linear-gradient(to right, #00BCD4, #4DB6AC); /* Cyan gradient */
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 1.1em;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: 15px;
+    display: block; /* Make it a block element to sit below total */
+    width: fit-content; /* Adjust width to content */
+    margin-left: auto; /* Push to the right */
+    margin-right: 0;
+    font-family: 'Open Sans', sans-serif;
+    font-weight: 600;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.menu-action-button:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.25);
+    background: linear-gradient(to right, #00BCD4, #00ACC1);
+}
+
+#place-order-btn,
+#reset-history-btn,
+#reset-daily-summary-btn,
+#add-update-item-btn,
+#cancel-edit-btn,
+#reset-menu-btn,
+#print-invoice-btn,
+#reset-top-items-btn,
+#add-update-restaurant-btn, /* New: Added restaurant buttons */
+#cancel-edit-restaurant-btn {
+    color: white;
+    padding: 14px 30px;
+    border: none;
+    border-radius: 8px;
+    font-size: 1.3em;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: 20px;
+    display: inline-flex; /* Changed to inline-flex */
+    align-items: center; /* Center icon and text vertically */
+    justify-content: center; /* Center icon and text horizontally */
+    font-family: 'Open Sans', sans-serif;
+    font-weight: 600;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    position: relative;
+    z-index: 1;
+}
+
+#place-order-btn i,
+#reset-history-btn i,
+#reset-daily-summary-btn i,
+#add-update-item-btn i,
+#cancel-edit-btn i,
+#reset-menu-btn i,
+#print-invoice-btn i,
+#reset-top-items-btn i,
+.edit-order-btn i,
+.confirm-button i,
+.edit-item-btn i,
+.delete-item-btn i,
+.download-button i,
+#add-update-restaurant-btn i, /* New: Added restaurant icons */
+#cancel-edit-restaurant-btn i,
+.edit-restaurant-btn i,
+.delete-restaurant-btn i {
+    margin-right: 10px; /* Space between icon and text */
+}
+
+#place-order-btn {
+     background-color: #4CAF50; /* Green */
+     background: linear-gradient(to right, #4CAF50, #8BC34A); /* Green gradient */
+}
+
+#print-invoice-btn {
+    background-color: #007bff; /* Blue */
+    background: linear-gradient(to right, #007bff, #0056b3); /* Blue gradient */
+    margin-left: 10px; /* Space from order result */
+}
+
+#reset-history-btn {
+     background-color: #f44336;
+     background: linear-gradient(to right, #D32F2F, #F44336); /* Red gradient */
+}
+
+/* Style for Reset Daily Summary Button */
+#reset-daily-summary-btn {
+    background-color: #FF5722; /* Deep Orange */
+    background: linear-gradient(to right, #FF5722, #FF8A65); /* Orange gradient */
+    margin-top: 15px; /* Space from summary text */
+}
+
+/* New: Style for Reset Top Items Button */
+#reset-top-items-btn {
+    background-color: #FF9800; /* Orange */
+    background: linear-gradient(to right, #FF9800, #FB8C00); /* Orange gradient */
+    color: white;
+    margin-top: 15px;
+}
+
+#place-order-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.25);
+    background: linear-gradient(to right, #4CAF50, #6D8E4A);
+}
+
+#print-invoice-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.25);
+    background: linear-gradient(to right, #0056b3, #004085);
+}
+
+#reset-history-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.25);
+    background: linear-gradient(to right, #D32F2F, #B71C1C);
+}
+
+/* Hover style for Reset Daily Summary Button */
+#reset-daily-summary-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.25);
+    background: linear-gradient(to right, #FF5722, #E64A19);
+}
+
+/* New: Hover style for Reset Top Items Button */
+#reset-top-items-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.25);
+    background: linear-gradient(to right, #FB8C00, #E65100);
+}
+
+/* Style for Order Result */
+#order-result {
+    margin-top: 30px;
+    padding: 18px;
+    background-color: #ffe0b2; /* Light orange */
+    border-radius: 8px;
+    min-height: 1.8em;
+    color: #444;
+    font-size: 1.2em;
+    font-weight: 600;
+    word-wrap: break-word;
+    text-align: left;
+    border: 1px solid #ffcc80;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    position: relative;
+    z-index: 1;
+}
+
+/* Style for error messages */
+#order-result.error {
+    background-color: #ffcdd2; /* Light red */
+    color: #D32F2F; /* Deep red */
+    border-color: #ef9a9a;
+}
+
+/* Style for Order History Section */
+#order-history {
+    border-top: 2px dashed #FFD700; /* Dashed gold line */
+    padding-top: 30px;
+    text-align: left;
+    position: relative;
+    z-index: 1;
+}
+
+#order-history h2 {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+#history-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+#history-list li {
+    background-color: #fff8e1; /* Even lighter cream */
+    border: 1px solid #ffe082; /* Light gold border */
+    border-radius: 8px;
+    padding: 15px 20px;
+    margin-bottom: 15px;
+    word-wrap: break-word;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+#history-list li:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.12);
+}
+
+#history-list li div {
+    flex-grow: 1;
+    margin-right: 20px;
+    color: #333;
+    line-height: 1.6;
+}
+
+#history-list li strong {
+    color: #D32F2F; /* Deep red for emphasis */
+}
+
+#history-list li .order-notes-display {
+    font-size: 0.95em;
+    color: #666;
+    margin-top: 5px;
+    font-style: italic;
+    white-space: pre-wrap; /* Preserve whitespace and allow wrapping */
+}
+
+/* Style for the status dropdown */
+.order-status {
+    padding: 8px 12px;
+    border: 1px solid #FF8C00; /* Orange border */
+    border-radius: 5px;
+    font-size: 1em;
+    cursor: pointer;
+    background-color: #fff;
+    color: #333;
+    appearance: none; /* Remove default arrow */
+    background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23FF8C00%22%20d%3D%22M287%2069.9a14.8%2014.8%200%200%200-21.2%200l-123.6%20123.6L21.2%2069.9a14.8%2014.8%200%200%200-21.2%2021.2l134.2%20134.2a14.8%2014.8%200%200%200%2021.2%200L287%2091.1a14.8%2014.8%200%200%200%200-21.2z%22%2F%3E%3C%2Fsvg%3E');
+    background-repeat: no-repeat;
+    background-position: right 8px top 50%;
+    background-size: 12px auto;
+    transition: border-color 0.3s ease;
+}
+
+.order-status:focus {
+    outline: none;
+    border-color: #FF4500;
+}
+
+/* Edit button in history list */
+.edit-order-btn {
+    background-color: #007bff;
+    background: linear-gradient(to right, #2196F3, #1976D2); /* Blue */
+    color: white;
+    padding: 8px 12px;
+    border: none;
+    border-radius: 5px;
+    font-size: 0.9em;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-left: 10px; /* Space from status select */
+    font-weight: 600;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    display: inline-flex; /* Changed to inline-flex */
+    align-items: center; /* Center icon and text vertically */
+    justify-content: center; /* Center icon and text horizontally */
+}
+.edit-order-btn:hover {
+    background: linear-gradient(to right, #1976D2, #0D47A1);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Style for Pagination Controls */
+.pagination-controls {
+    text-align: center;
+    margin-top: 25px;
+    margin-bottom: 25px;
+    position: relative;
+    z-index: 1;
+}
+
+.pagination-controls button {
+    padding: 10px 20px;
+    font-size: 1.1em;
+    margin: 0 8px;
+    cursor: pointer;
+    border: 1px solid #FF8C00;
+    border-radius: 5px;
+    background-color: #FFD700; /* Gold */
+    color: #D32F2F; /* Deep Red */
+    transition: background-color 0.2s ease, transform 0.2s ease;
+    font-weight: 600;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.pagination-controls button:not(:disabled):hover {
+    background-color: #FFC107; /* Lighter Gold */
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.pagination-controls button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background-color: #f0f0f0;
+    color: #888;
+    box-shadow: none;
+    transform: none;
+}
+
+.pagination-controls span {
+    font-size: 1.1em;
+    margin: 0 15px;
+    color: #555;
+    font-weight: 600;
+}
+
+/* Style for Menu Management Section */
+#menu-management {
+    border-top: 2px dashed #FFD700;
+    padding-top: 30px;
+    text-align: left;
+    position: relative;
+    z-index: 1;
+}
+
+#menu-management h2 {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.menu-item-input {
+    margin-bottom: 25px;
+    padding: 20px;
+    background-color: #fffaf0;
+    border: 1px solid #ffe082;
+    border-radius: 10px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
+}
+
+.menu-item-input label {
+    display: block;
+    margin-bottom: 10px;
+    font-size: 1.1em;
+    color: #555;
+    font-weight: 600;
+}
+
+.menu-item-input input[type="text"],
+.menu-item-input input[type="number"],
+.menu-item-input select {
+    width: calc(50% - 20px); /* Adjust width for two inputs */
+    padding: 10px;
+    border: 1px solid #FF8C00;
+    border-radius: 5px;
+    font-size: 1em;
+    margin-right: 10px;
+    margin-bottom: 15px; /* Space between inputs and buttons */
+    display: inline-block;
+    vertical-align: middle;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+.menu-item-input input[type="number"] {
+    width: calc(50% - 15px); /* Adjusted for slightly different spacing */
+}
+.menu-item-input select {
+    width: calc(50% - 15px);
+    appearance: none; /* Remove default arrow */
+    background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23FF8C00%22%20d%3D%22M287%2069.9a14.8%2014.8%200%200%200-21.2%200l-123.6%20123.6L21.2%2069.9a14.8%2014.8%200%200%200-21.2%2021.2l134.2%20134.2a14.8%2014.8%200%200%200%2021.2%200L287%2091.1a14.8%2014.8%200%200%200%200-21.2z%22%2F%3E%3C%2Fsvg%3E');
+    background-repeat: no-repeat;
+    background-position: right 8px top 50%;
+    background-size: 12px auto;
+}
+
+.menu-item-input button {
+    padding: 10px 18px;
+    font-size: 1em;
+    cursor: pointer;
+    border: none;
+    border-radius: 5px;
+    margin-top: 0;
+    display: inline-flex; /* Changed to inline-flex */
+    align-items: center; /* Center icon and text vertically */
+    justify-content: center; /* Center icon and text horizontally */
+    font-weight: 600;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s ease;
+}
+
+#add-update-item-btn {
+    background-color: #007bff;
+    background: linear-gradient(to right, #2196F3, #1976D2); /* Blue */
+    color: white;
+}
+#add-update-item-btn:hover {
+     background: linear-gradient(to right, #1976D2, #0D47A1);
+     transform: translateY(-2px);
+     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+#cancel-edit-btn {
+    background-color: #6c757d;
+    background: linear-gradient(to right, #607D8B, #455A64); /* Grey */
+    color: white;
+}
+#cancel-edit-btn:hover {
+    background: linear-gradient(to right, #455A64, #37474F);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+#management-menu-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+#management-menu-list .menu-item-entry {
+    background-color: #fff8e1;
+    border: 1px solid #ffe082;
+    border-radius: 8px;
+    padding: 12px 18px;
+    margin-bottom: 12px;
+    word-wrap: break-word;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+#management-menu-list .menu-item-entry:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.12);
+}
+
+#management-menu-list .menu-item-name {
+    flex-grow: 1;
+    margin-right: 15px;
+    color: #333;
+    font-size: 1.1em;
+    font-weight: 500;
+}
+
+#management-menu-list .menu-item-actions button {
+    padding: 6px 10px;
+    font-size: 0.9em;
+    margin-left: 8px;
+    cursor: pointer;
+    border: none;
+    border-radius: 4px;
+    margin-top: 0;
+    font-weight: 600;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s ease;
+    display: inline-flex; /* Changed to inline-flex */
+    align-items: center; /* Center icon and text vertically */
+    justify-content: center; /* Center icon and text horizontally */
+}
+
+#management-menu-list .menu-item-actions .edit-item-btn {
+    background: linear-gradient(to right, #FFC107, #FFA000); /* Yellow-orange */
+    color: #333;
+}
+#management-menu-list .menu-item-actions .edit-item-btn:hover {
+    background: linear-gradient(to right, #FFA000, #E65100);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+}
+
+#management-menu-list .menu-item-actions .delete-item-btn {
+    background: linear-gradient(to right, #D32F2F, #E53935); /* Red */
+    color: white;
+}
+#management-menu-list .menu-item-actions .delete-item-btn:hover {
+    background: linear-gradient(to right, #E53935, #B71C1C);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+}
+
+/* Add style for the new reset menu button */
+#reset-menu-btn {
+    background-color: #f44336;
+    background: linear-gradient(to right, #D32F2F, #F44336); /* Red gradient */
+    color: white;
+    margin-top: 25px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Add hover style for the new reset menu button */
+#reset-menu-btn:hover {
+     background: linear-gradient(to right, #D32F2F, #B71C1C);
+     transform: translateY(-3px);
+     box-shadow: 0 6px 12px rgba(0, 0, 0, 0.25);
+}
+
+/* Style for Daily Summary Section */
+#daily-summary {
+    border-top: 2px dashed #009688; /* Dashed teal line */
+    padding-top: 30px;
+    text-align: center;
+    position: relative;
+    z-index: 1;
+    background-color: #E0F2F1; /* Light teal background */
+    border-radius: 10px;
+    padding-bottom: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+#daily-summary h2 {
+    color: #00796B; /* Darker teal for heading */
+    margin-bottom: 15px;
+}
+
+#daily-summary p {
+    font-size: 1.3em;
+    color: #333;
+    margin-bottom: 10px;
+    font-weight: 600;
+}
+
+#daily-summary span {
+    font-weight: bold;
+    color: #D32F2F; /* Deep Red for totals */
+}
+
+/* New: Style for Top Items Section */
+#top-items {
+    border-top: 2px dashed #FFEB3B; /* Yellow dashed line */
+    padding-top: 30px;
+    text-align: center;
+    position: relative;
+    z-index: 1;
+    background-color: #FFFDE7; /* Very light yellow background */
+    border-radius: 10px;
+    padding-bottom: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+#top-items h2 {
+    color: #FFD700; /* Gold for heading */
+    margin-bottom: 20px;
+}
+
+#no-top-items-message {
+    font-size: 1.2em;
+    color: #666;
+    font-style: italic;
+    margin-top: 20px;
+}
+
+#topItemsChart {
+    max-width: 100%;
+    max-height: 400px; /* Limit chart height */
+    margin: 0 auto 20px auto;
+    background-color: #ffffff; /* White background for chart area */
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    padding: 10px;
+}
+
+/* New: Download Buttons */
+.download-button {
+    background: linear-gradient(to right, #673AB7, #9575CD); /* Deep Purple gradient */
+    color: white;
+    padding: 12px 25px;
+    border: none;
+    border-radius: 8px;
+    font-size: 1.1em;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: 20px; /* Adjust margin as needed */
+    margin-left: 10px; /* Space from reset button */
+    font-family: 'Open Sans', sans-serif;
+    font-weight: 600;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    display: inline-flex; /* Changed to inline-flex */
+    align-items: center; /* Center icon and text vertically */
+    justify-content: center; /* Center icon and text horizontally */
+}
+
+.download-button:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.25);
+    background: linear-gradient(to right, #512DA8, #7E57C2);
+}
+
+/* Utility class to hide elements */
+.hidden {
+    display: none;
+}
+
+/* New: Modal styles for extra payment, login, edit order */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1001; /* Higher than settings modal if both could be open */
+    opacity: 0;
+    transform: scale(0.8);
+    transition: opacity 0.3s ease-out, transform 0.3s ease-out;
+    pointer-events: none;
+}
+
+.modal-overlay.active {
+    opacity: 1;
+    transform: scale(1);
+    pointer-events: auto;
+}
+
+.modal-content {
+    background: linear-gradient(135deg, #AED581 0%, #66BB6A 100%);
+    padding: 40px;
+    border-radius: 15px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+    width: 90%;
+    max-width: 600px; /* Wider for edit form */
+    text-align: center;
+    border: 4px solid #4CAF50;
+    position: relative;
+    color: #333;
+    animation: fadeInScale 0.3s ease-out forwards;
+    max-height: 90vh; /* Limit height for scrollable content */
+    overflow-y: auto; /* Enable scrolling for long forms */
+}
+
+/* Specific background for login modal */
+#login-modal-overlay .modal-content {
+    background: linear-gradient(135deg, #FFD700 0%, #FF8C00 100%); /* Gold to Dark Orange, matching app theme */
+    border: 4px solid #D32F2F; /* Deep Red border */
+}
+
+#login-modal-overlay .modal-content h2 {
+    color: #D32F2F; /* Deep Red */
+    margin-bottom: 20px; /* Reduced margin for logo */
+}
+
+#login-modal-overlay .modal-content .login-logo { /* New: Login logo style */
+    max-width: 120px;
+    height: auto;
+    margin-bottom: 20px;
+    border-radius: 0;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+#login-modal-overlay .modal-content input {
+    border: 2px solid #FF8C00; /* Darker Orange border */
+}
+#login-modal-overlay .modal-content input:focus {
+    border-color: #FF4500; /* OrangeRed focus */
+    box-shadow: 0 0 8px rgba(255, 69, 0, 0.3);
+}
+#login-modal-overlay .modal-content .confirm-button {
+    background: linear-gradient(to right, #4CAF50, #8BC34A); /* Green gradient */
+}
+
+#login-modal-overlay .modal-content .confirm-button:hover {
+    background: linear-gradient(to right, #4CAF50, #6D8E4A);
+}
+
+.modal-content h2 {
+    color: #2E7D32;
+    font-size: 2.5em;
+    margin-bottom: 25px;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.modal-content .close-button {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    background: none;
+    border: none;
+    font-size: 2.5em;
+    color: #D32F2F;
+    cursor: pointer;
+    line-height: 1;
+    transition: transform 0.2s ease-in-out, color 0.2s ease-in-out;
+}
+
+.modal-content .close-button:hover {
+    transform: rotate(90deg);
+    color: #B71C1C;
+}
+
+.modal-content .form-group {
+    margin-bottom: 20px;
+    text-align: left;
+    position: relative; /* Make it a positioning context for the toggle button */
+}
+
+.modal-content label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 1.1em;
+    color: #444;
+    font-weight: 600;
+}
+
+.modal-content input[type="number"],
+.modal-content input[type="text"],
+.modal-content input[type="password"], /* Added password input */
+.modal-content textarea,
+.modal-content select {
+    width: calc(100% - 24px);
+    padding: 12px;
+    border: 2px solid #66BB6A;
+    border-radius: 8px;
+    font-size: 1em;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+    transition: border-color 0.3s ease;
+}
+
+.modal-content input[type="number"]:focus,
+.modal-content input[type="text"]:focus,
+.modal-content input[type="password"]:focus, /* Added password focus */
+.modal-content textarea:focus,
+.modal-content select:focus {
+    border-color: #4CAF50;
+    outline: none;
+    box-shadow: 0 0 8px rgba(76, 175, 80, 0.3);
+}
+
+.modal-content textarea {
+    min-height: 80px;
+    resize: vertical;
+}
+
+.modal-content select {
+    appearance: none; /* Remove default arrow for custom styling */
+    background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%234CAF50%22%20d%3D%22M287%2069.9a14.8%2014.8%200%200%200-21.2%200l-123.6%20123.6L21.2%2069.9a14.8%2014.8%200%200%200-21.2%2021.2l134.2%20134.2a14.8%2014.8%200%200%200%2021.2%200L287%2091.1a14.8%2014.8%200%200%200%200-21.2z%22%2F%3E%3C%2Fsvg%3E');
+    background-repeat: no-repeat;
+    background-position: right 8px top 50%;
+    background-size: 12px auto;
+}
+
+.modal-content .confirm-button {
+    background: linear-gradient(to right, #4CAF50, #8BC34A);
+    color: white;
+    padding: 12px 25px;
+    border: none;
+    border-radius: 8px;
+    font-size: 1.2em;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: 20px;
+    font-family: 'Open Sans', sans-serif;
+    font-weight: 600;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    display: inline-flex; /* Changed to inline-flex */
+    align-items: center; /* Center icon and text vertically */
+    justify-content: center; /* Center icon and text horizontally */
+}
+
+.modal-content .confirm-button:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.25);
+    background: linear-gradient(to right, #4CAF50, #6D8E4A);
+}
+
+.modal-message {
+    margin-top: 20px;
+    font-size: 1.1em;
+    font-weight: 600;
+    color: #D32F2F; /* Red for errors, adjust for success */
+}
+.modal-message.success {
+    color: #2E7D32; /* Dark green for success */
+}
+
+.edit-order-categories {
+    display: grid;
+    grid-template-columns: 1fr; /* Default to single column */
+    gap: 15px;
+}
+
+@media (min-width: 480px) {
+    .edit-order-categories {
+        grid-template-columns: 1fr 1fr; /* Two columns on larger screens */
+    }
+}
+
+.edit-order-category {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 10px;
+    background-color: #f9f9f9;
+}
+
+.edit-order-category h3 {
+    font-size: 1.2em;
+    color: #4CAF50;
+    margin-top: 0;
+    margin-bottom: 10px;
+    text-align: center;
+    border-bottom: 1px dashed #66BB6A;
+    padding-bottom: 5px;
+}
+
+.edit-items-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    max-height: 150px; /* Limit height of item list */
+    overflow-y: auto; /* Make it scrollable */
+}
+
+.edit-items-list li {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+    background-color: #fff;
+    padding: 8px;
+    border-radius: 5px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.edit-items-list li:last-child {
+    margin-bottom: 0;
+}
+
+.edit-items-list input[type="checkbox"] {
+    margin-right: 10px;
+    width: 18px;
+    height: 18px;
+    accent-color: #4CAF50;
+    flex-shrink: 0; /* Prevent checkbox from shrinking */
+}
+
+.edit-items-list label {
+    font-size: 1em;
+    margin-bottom: 0; /* Override default label margin */
+    flex-grow: 1; /* Allow label to take available space */
+    cursor: pointer;
+}
+
+/* New: Styles for Restaurant Management Section */
+#restaurant-management-section {
+    border-top: 2px dashed #673AB7; /* Purple dashed line */
+    padding-top: 30px;
+    text-align: left;
+    position: relative;
+    z-index: 1;
+}
+
+#restaurant-management-section h2 {
+    text-align: center;
+    margin-bottom: 20px;
+    color: #512DA8; /* Darker purple */
+}
+
+.restaurant-input {
+    margin-bottom: 25px;
+    padding: 20px;
+    background-color: #EDE7F6; /* Lighter purple background */
+    border: 1px solid #B39DDB; /* Light purple border */
+    border-radius: 10px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
+}
+
+.restaurant-input label {
+    display: block;
+    margin-bottom: 10px;
+    font-size: 1.1em;
+    color: #555;
+    font-weight: 600;
+}
+
+.restaurant-input input[type="text"],
+.restaurant-input input[type="password"] {
+    width: calc(100% - 24px);
+    padding: 10px;
+    border: 1px solid #9575CD;
+    border-radius: 5px;
+    font-size: 1em;
+    margin-bottom: 15px;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* New: Password toggle icon styles */
+.password-input-wrapper {
+    position: relative;
+    margin-bottom: 15px; /* Adjust margin to match other inputs */
+}
+
+.password-input-wrapper input {
+    width: calc(100% - 40px); /* Account for padding + toggle width */
+    padding-right: 40px; /* Make space for the eye icon */
+}
+
+.password-toggle {
+    position: absolute;
+    right: 12px; /* Adjust as needed to align with input */
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    color: #888;
+    font-size: 1.1em; /* Make icon slightly larger */
+    background-color: transparent; /* No background by default */
+    border-radius: 0; /* No border-radius */
+    width: auto; /* Auto width */
+    height: auto; /* Auto height */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-shadow: none; /* No shadow */
+    transition: color 0.2s ease;
+}
+
+.password-toggle:hover {
+    color: #555; /* Darker on hover */
+    background-color: transparent;
+    box-shadow: none;
+}
+
+/* Specific adjustments for password toggle within .form-group for login modal */
+#login-modal-overlay .form-group .password-input-wrapper .password-toggle {
+    right: 12px; /* Adjust to be inside the modal content's padding */
+}
+
+/* Specific adjustments for password toggle within .restaurant-input for restaurant management */
+#restaurant-management-section .restaurant-input .password-input-wrapper .password-toggle {
+    right: 12px; /* Adjust to be inside the .restaurant-input's padding */
+}
+
+/* New: Styles for date inputs in restaurant management */
+.restaurant-input input[type="date"] {
+    width: calc(100% - 24px);
+    padding: 10px;
+    border: 1px solid #9575CD;
+    border-radius: 5px;
+    font-size: 1em;
+    margin-bottom: 15px;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+    transition: border-color 0.3s ease;
+    background-color: #fff;
+}
+
+.restaurant-input input[type="date"]:focus {
+    border-color: #673AB7;
+    outline: none;
+    box-shadow: 0 0 8px rgba(103, 58, 183, 0.3);
+}
+
+#add-update-restaurant-btn {
+    background: linear-gradient(to right, #673AB7, #5E35B1); /* Darker purple */
+    color: white;
+}
+#add-update-restaurant-btn:hover {
+    background: linear-gradient(to right, #5E35B1, #4527A0);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+#cancel-edit-restaurant-btn {
+    background: linear-gradient(to right, #B0BEC5, #78909C); /* Light grey */
+    color: white;
+}
+#cancel-edit-restaurant-btn:hover {
+    background: linear-gradient(to right, #78909C, #546E7A);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+#restaurant-list-management {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+#restaurant-list-management .restaurant-entry {
+    background-color: #F3E5F5; /* Very light purple */
+    border: 1px solid #E1BEE7; /* Lighter purple border */
+    border-radius: 8px;
+    padding: 12px 18px;
+    margin-bottom: 12px;
+    word-wrap: break-word;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+#restaurant-list-management .restaurant-entry:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.12);
+}
+
+#restaurant-list-management .restaurant-info {
+    flex-grow: 1;
+    margin-right: 15px;
+    color: #333;
+    font-size: 1.1em;
+    font-weight: 500;
+}
+
+#restaurant-list-management .restaurant-actions button {
+    padding: 6px 10px;
+    font-size: 0.9em;
+    margin-left: 8px;
+    cursor: pointer;
+    border: none;
+    border-radius: 4px;
+    margin-top: 0;
+    font-weight: 600;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#restaurant-list-management .restaurant-actions .edit-restaurant-btn {
+    background: linear-gradient(to right, #FFC107, #FFA000); /* Yellow-orange */
+    color: #333;
+}
+#restaurant-list-management .restaurant-actions .edit-restaurant-btn:hover {
+    background: linear-gradient(to right, #FFA000, #E65100);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+}
+
+#restaurant-list-management .restaurant-actions .delete-restaurant-btn {
+    background: linear-gradient(to right, #D32F2F, #E53935); /* Red */
+    color: white;
+}
+#restaurant-list-management .restaurant-actions .delete-restaurant-btn:hover {
+    background: linear-gradient(to right, #E53935, #B71C1C);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+}
+
+/* New: Toggle switch for active/inactive */
+.restaurant-status-toggle {
+    position: relative;
+    display: inline-block;
+    width: 60px;
+    height: 34px;
+    margin-left: 10px;
+}
+
+.restaurant-status-toggle input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.restaurant-status-toggle .slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    -webkit-transition: .4s;
+    transition: .4s;
+    border-radius: 34px;
+}
+
+.restaurant-status-toggle .slider:before {
+    position: absolute;
+    content: "";
+    height: 26px;
+    width: 26px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    -webkit-transition: .4s;
+    transition: .4s;
+    border-radius: 50%;
+}
+
+.restaurant-status-toggle input:checked + .slider {
+    background-color: #4CAF50; /* Green for active */
+}
+
+.restaurant-status-toggle input:focus + .slider {
+    box-shadow: 0 0 1px #4CAF50;
+}
+
+.restaurant-status-toggle input:checked + .slider:before {
+    -webkit-transform: translateX(26px);
+    -ms-transform: translateX(26px);
+    transform: translateX(26px);
+}
+
+/* Rounded sliders */
+.restaurant-status-toggle .slider.round {
+    border-radius: 34px;
+}
+
+.restaurant-status-toggle .slider.round:before {
+    border-radius: 50%;
+}
+
+/* New: Style for Weekly Stats Section */
+#weekly-stats {
+    border-top: 2px dashed #673AB7; /* Purple dashed line */
+    padding-top: 30px;
+    text-align: center;
+    position: relative;
+    z-index: 1;
+    background-color: #EDE7F6; /* Lighter purple background */
+    border-radius: 10px;
+    padding-bottom: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+#weekly-stats h2 {
+    color: #512DA8; /* Darker purple for heading */
+    margin-bottom: 20px;
+}
+
+#weekly-stats p {
+    font-size: 1.3em;
+    color: #333;
+    margin-bottom: 10px;
+    font-weight: 600;
+}
+
+#weekly-stats span {
+    font-weight: bold;
+    color: #673AB7; /* Deep Purple for totals */
+}
+
+#no-weekly-stats-message {
+    font-size: 1.2em;
+    color: #666;
+    font-style: italic;
+    margin-top: 20px;
+}
+
+#weeklyRevenueChart {
+    max-width: 100%;
+    max-height: 450px; /* Limit chart height */
+    margin: 20px auto;
+    background-color: #ffffff; /* White background for chart area */
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    padding: 15px;
+}
+
+.chart-section-title {
+    font-family: 'Fredoka One', cursive;
+    color: #512DA8; /* Darker purple */
+    margin-top: 40px; /* Space above the new chart title */
+    margin-bottom: 20px;
+    font-size: 1.8em;
+    text-align: center;
+}
+
+#orderTypeChart {
+    max-width: 100%;
+    max-height: 350px; /* Smaller height for this chart */
+    margin: 0 auto 20px auto;
+    background-color: #ffffff; /* White background for chart area */
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    padding: 15px;
+}
+
+/* New: Styles for the date range selector in Weekly Stats */
+.date-range-selector {
+    display: flex;
+    flex-wrap: wrap; /* Allow wrapping on smaller screens */
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 25px;
+    padding: 15px;
+    background-color: #F3E5F5; /* Lighter purple background */
+    border: 1px solid #E1BEE7; /* Light purple border */
+    border-radius: 10px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
+}
+
+.date-range-selector label {
+    font-size: 1.1em;
+    color: #555;
+    font-weight: 600;
+    margin-right: 10px;
+    margin-bottom: 10px; /* Space out elements when wrapping */
+}
+
+.date-range-selector input[type="date"] {
+    padding: 10px;
+    border: 1px solid #9575CD; /* Purple border */
+    border-radius: 5px;
+    font-size: 1em;
+    margin-right: 15px;
+    margin-bottom: 10px; /* Space out elements when wrapping */
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+    transition: border-color 0.3s ease;
+    background-color: #fff;
+    flex-grow: 1; /* Allow inputs to grow */
+    max-width: 180px; /* Limit max width for date inputs */
+}
+
+.date-range-selector input[type="date"]:focus {
+    border-color: #673AB7; /* Darker purple on focus */
+    outline: none;
+    box-shadow: 0 0 8px rgba(103, 58, 183, 0.3);
+}
+
+.date-range-selector #load-weekly-stats-btn {
+    background: linear-gradient(to right, #673AB7, #5E35B1); /* Darker purple */
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 1.1em;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: 0; /* Align with inputs */
+    margin-bottom: 10px; /* Space out elements when wrapping */
+    font-weight: 600;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.date-range-selector #load-weekly-stats-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.25);
+    background: linear-gradient(to right, #5E35B1, #4527A0);
+}
+
+@media (max-width: 768px) {
+    .container-wrapper {
+        margin: 10px; /* Smaller margin for wrapper */
+        border-radius: 8px; /* Smaller border radius for wrapper */
+    }
+
+    .sidebar {
+        position: fixed; /* Fix sidebar position */
+        top: 0;
+        left: 0;
+        height: 100%;
+        transform: translateX(-100%); /* Hide sidebar by default */
+        z-index: 100; /* Ensure it's above everything when active */
+        width: 220px; /* Slightly narrower sidebar on mobile */
+        padding-top: 0; /* Remove top padding for better fit */
+        border-radius: 0; /* No border radius for fixed sidebar */
+        overflow-y: auto; /* Ensure scrolling is enabled for mobile too */
+    }
+
+    .sidebar.active {
+        transform: translateX(0); /* Show sidebar */
+    }
+
+    .sidebar-header {
+        padding-top: 20px;
+    }
+
+    .main-content {
+        padding: 15px; /* Adjust padding for smaller screens */
+        width: 100%; /* Take full width */
+    }
+
+    .main-header {
+        justify-content: flex-start; /* Align elements to the start */
+        margin-bottom: 20px;
+    }
+
+    .main-header h1 {
+        font-size: 2em; /* Smaller font size for header title */
+        text-align: left; /* Align title to left on mobile */
+        margin-left: 20px; /* Space from menu toggle button */
+    }
+
+    .menu-toggle-button {
+        display: flex; /* Show toggle button on small screens */
+        position: fixed; /* Fix the position of the toggle button */
+        top: 15px; /* Adjust top position */
+        left: 15px; /* Adjust left position */
+        z-index: 101; /* Ensure it's above the sidebar when active */
+    }
+
+    .menu-toggle-button:active {
+        transform: scale(0.95);
+    }
+
+    .customer-info,
+    .dine-takeaway-selection,
+    .order-notes,
+    .menu,
+    #order-result,
+    #order-history,
+    #menu-management,
+    #daily-summary,
+    #top-items,
+    #restaurant-management-section,
+    #weekly-stats,
+    #download-order-type-btn { /* Added weekly stats section and order type download button */
+        padding: 0 10px; /* Smaller horizontal padding for content sections */
+        max-width: 100%; /* Allow content to take full width */
+    }
+
+    #place-order-btn, #print-invoice-btn {
+        width: calc(100% - 20px); /* Adjust for new padding */
+        margin-left: 10px;
+        margin-right: 10px;
+    }
+
+    .menu-item-input input[type="text"],
+    .menu-item-input input[type="number"],
+    .menu-item-input select {
+        width: calc(100% - 20px);
+        margin-right: 0;
+    }
+    .menu-item-input button {
+        display: block;
+        width: 100%;
+        margin-bottom: 10px;
+    }
+    .button-group {
+        flex-direction: column;
+        gap: 10px;
+    }
+    .button-group button {
+        width: 100%;
+        max-width: none;
+    }
+    .settings-button {
+        padding: 8px 15px;
+        font-size: 1em;
+    }
+    .settings-button i {
+        margin-right: 5px;
+    }
+    #print-invoice-btn {
+        margin-left: auto; /* Center it if it's the only button */
+        margin-right: auto;
+        margin-top: 15px;
+    }
+    /* Responsive for toggle switch */
+    .toggle-switch {
+        width: 100%;
+        max-width: 280px; /* Keep max width to avoid stretching too much */
+        margin: 0 auto;
+    }
+    .toggle-switch .toggle-label {
+        line-height: 50px;
+        font-size: 1.1em;
+    }
+    .toggle-switch .toggle-slider {
+        height: calc(100% - 10px);
+        border-radius: 20px;
+    }
+    /* Modal responsive adjustments */
+    .modal-content {
+        padding: 30px;
+    }
+    .modal-content h2 {
+        font-size: 2em;
+    }
+    .modal-content input[type="number"],
+    .modal-content input[type="text"],
+    .modal-content input[type="password"], /* Added for password */
+    .modal-content textarea,
+    .modal-content select {
+        width: calc(100% - 20px);
+    }
+    .modal-content .confirm-button {
+        padding: 12px 25px;
+        font-size: 1.2em;
+    }
+
+    .download-button {
+        width: 100%;
+        margin-left: 0;
+        margin-top: 10px;
+    }
+
+    /* Restaurant management inputs */
+    .restaurant-input input[type="text"],
+    .restaurant-input input[type="password"],
+    .restaurant-input input[type="date"] { /* Added date input */
+        width: calc(100% - 20px);
+    }
+    .restaurant-input button {
+        display: block;
+        width: 100%;
+        margin-bottom: 10px;
+    }
+    .restaurant-list-management .restaurant-actions button {
+        font-size: 0.8em;
+        padding: 5px 8px;
+        margin-left: 5px;
+    }
+
+    .menu-categories {
+        grid-template-columns: 1fr; /* Single column on mobile */
+    }
+    .edit-order-categories {
+        grid-template-columns: 1fr; /* Single column on mobile */
+    }
+
+    /* Responsive adjustments for date range selector */
+    .date-range-selector {
+        flex-direction: column;
+        align-items: stretch;
+        padding: 10px;
+    }
+
+    .date-range-selector label,
+    .date-range-selector input[type="date"],
+    .date-range-selector #load-weekly-stats-btn {
+        margin-right: 0;
+        margin-bottom: 10px;
+        width: 100%; /* Full width */
+        max-width: none; /* Remove max-width constraint */
+    }
+
+    .date-range-selector input[type="date"] {
+        box-sizing: border-box; /* Include padding and border in width */
+    }
+}
+
+@media (max-width: 480px) {
+    .container-wrapper {
+        margin: 5px; /* Even smaller margin for wrapper */
+    }
+    .main-content {
+        padding: 10px;
+    }
+    .main-header h1 {
+        font-size: 1.5em;
+        margin-left: 10px;
+    }
+    .menu-toggle-button {
+        padding: 8px 12px;
+        font-size: 1.3em;
+        margin-right: 10px;
+    }
+    .customer-info,
+    .dine-takeaway-selection,
+    .order-notes,
+    .menu,
+    #order-result,
+    #order-history,
+    #menu-management,
+    #daily-summary,
+    #top-items,
+    #restaurant-management-section,
+    #weekly-stats,
+    #download-order-type-btn { /* Added weekly stats section and order type download button */
+        padding: 0 5px; /* Very small padding */
+    }
+
+    #place-order-btn, #print-invoice-btn {
+        width: calc(100% - 10px);
+        margin-left: 5px;
+        margin-right: 5px;
+        font-size: 1.1em;
+        padding: 12px 20px;
+    }
+
+    h1 {
+        font-size: 2em;
+    }
+    h2 {
+        font-size: 1.5em;
+    }
+    .menu-item-input input[type="text"],
+    .menu-item-input input[type="number"],
+    .menu-item-input select {
+        width: calc(100% - 10px);
+    }
+    .menu-item-actions button {
+        font-size: 0.8em;
+        padding: 5px 8px;
+        margin-left: 5px;
+    }
+    .order-status {
+        padding: 6px 10px;
+        font-size: 0.9em;
+    }
+    .toggle-switch {
+        height: 45px; /* Slightly smaller height */
+    }
+    .toggle-switch .toggle-label {
+        line-height: 45px;
+        font-size: 1em;
+    }
+    .toggle-switch .toggle-slider {
+        height: calc(100% - 10px);
+        border-radius: 17.5px;
+    }
+    /* Modal responsive adjustments */
+    .modal-content {
+        padding: 20px;
+    }
+    .modal-content h2 {
+        font-size: 1.8em;
+    }
+    .modal-content .close-button {
+        font-size: 2em;
+        top: 10px;
+        right: 15px;
+    }
+    .modal-content input[type="number"],
+    .modal-content input[type="text"],
+    .modal-content input[type="password"], /* Added for password */
+    .modal-content textarea,
+    .modal-content select {
+        width: calc(100% - 10px);
+    }
+    .modal-content .confirm-button {
+        padding: 10px 20px;
+        font-size: 1em;
+    }
+
+    /* Restaurant management inputs */
+    .restaurant-input input[type="text"],
+    .restaurant-input input[type="password"],
+    .restaurant-input input[type="date"] { /* Added date input */
+        width: calc(100% - 10px);
+    }
+    .restaurant-input button {
+        display: block;
+        width: 100%;
+        margin-bottom: 10px;
+    }
+    .restaurant-list-management .restaurant-actions button {
+        font-size: 0.8em;
+        padding: 5px 8px;
+        margin-left: 5px;
+    }
+
+    .menu-categories {
+        grid-template-columns: 1fr; /* Single column on mobile */
+    }
+    .edit-order-categories {
+        grid-template-columns: 1fr; /* Single column on mobile */
+    }
+
+    /* Responsive adjustments for date range selector on very small screens */
+    .date-range-selector {
+        padding: 5px;
+    }
+}
+
+/* Footer styles */
+footer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    width: 100%;
+    margin-top: auto; /* Pushes the footer to the bottom */
+    padding: 15px 0;
+    color: #555;
+    font-size: 0.9em;
+    font-weight: 600;
+    background-color: rgba(255, 255, 255, 0.7);
+    border-top: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+}
+
+footer p {
+    margin: 0;
+}
+
+/* New: Styles for Splash Screen */
+.splash-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #FFD700 0%, #FF8C00 100%); /* Match body background */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 1002; /* Above everything else */
+    color: #D32F2F;
+    font-family: 'Fredoka One', cursive;
+    text-align: center;
+    transition: opacity 0.5s ease; /* Fade out effect */
+}
+
+.splash-screen.hidden {
+    opacity: 0;
+    pointer-events: none; /* Prevent clicks */
+}
+
+.splash-logo {
+    width: 150px;
+    height: 150px;
+    object-fit: contain;
+    margin-bottom: 20px;
+}
+
+.splash-screen h1 {
+    font-size: 3em;
+    margin-bottom: 10px;
+}
+
+.splash-screen p {
+    font-size: 1.2em;
+}
+
+.item-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.item-info {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    min-width: 200px;
+}
+
+.item-info input[type="checkbox"] {
+    margin-right: 15px;
+    width: 22px;
+    height: 22px;
+    cursor: pointer;
+    accent-color: #FF4500;
+    flex-shrink: 0;
+}
+
+.item-info label {
+    font-size: 1.15em;
+    color: #333;
+    cursor: pointer;
+    font-weight: 500;
+}
+
+.quantity-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.qty-btn {
+    width: 28px;
+    height: 28px;
+    border: none;
+    background-color: #FF8C00;
+    color: white;
+    border-radius: 50%;
+    font-size: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s ease;
+}
+
+.qty-btn:hover {
+    background-color: #FF4500;
+}
+
+.qty-btn:active {
+    transform: scale(0.9);
+}
+
+.item-quantity {
+    width: 50px;
+    height: 28px;
+    text-align: center;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+@media (max-width: 768px) {
+    .item-container {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .quantity-controls {
+        margin-top: 8px;
+    }
+    
+    .item-quantity {
+        width: 45px;
+    }
+}
+
+.floating-total {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: linear-gradient(135deg, #4CAF50 0%, #8BC34A 100%);
+    color: white;
+    padding: 15px 25px;
+    border-radius: 50px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    font-size: 1.2em;
+    font-weight: bold;
+    z-index: 1000;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.floating-total:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+}
+
+.floating-total i {
+    font-size: 1.3em;
+}
+
+@media (max-width: 768px) {
+    .floating-total {
+        bottom: 15px;
+        right: 15px;
+        padding: 12px 20px;
+        font-size: 1.1em;
+    }
+}
+
+@media (max-width: 480px) {
+    .floating-total {
+        bottom: 10px;
+        right: 10px;
+        padding: 10px 15px;
+        font-size: 1em;
+    }
+}
+
+/* Enhanced Calculate Button Style */
+#calculate-btn {
+    background: linear-gradient(135deg, #FF8C00 0%, #FF4500 100%);
+    color: white;
+    padding: 14px 35px;
+    border: none;
+    border-radius: 50px;
+    font-size: 1.3em;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Fredoka One', cursive;
+    box-shadow: 0 4px 15px rgba(255, 69, 0, 0.3);
+    margin-top: 25px;
+    position: relative;
+    overflow: hidden;
+}
+
+#calculate-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    transition: left 0.5s ease;
+}
+
+#calculate-btn:hover {
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: 0 8px 25px rgba(255, 69, 0, 0.4);
+    background: linear-gradient(135deg, #FF4500 0%, #E65100 100%);
+}
+
+#calculate-btn:hover::before {
+    left: 100%;
+}
+
+#calculate-btn:active {
+    transform: translateY(-1px) scale(0.98);
+    box-shadow: 0 4px 15px rgba(255, 69, 0, 0.3);
+}
+
+#calculate-btn i {
+    margin-right: 8px;
+    font-size: 1.1em;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
+/* Responsive adjustments for calculate button */
+@media (max-width: 768px) {
+    #calculate-btn {
+        width: 100%;
+        max-width: 300px;
+        margin: 25px auto;
+    }
+}
+
+@media (max-width: 480px) {
+    #calculate-btn {
+        font-size: 1.2em;
+        padding: 12px 30px;
+    }
+}

@@ -1,0 +1,412 @@
+body {
+    font-family: 'Open Sans', sans-serif;
+    background: linear-gradient(to right, #FFC107, #FF5722); /* Warm, inviting gradient */
+    margin: 0;
+    padding: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center; /* Center vertically */
+    min-height: 100vh;
+    color: #333;
+}
+
+.monitor-container {
+    background-color: #fff;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+    width: 100%;
+    max-width: 900px;
+    text-align: center;
+    border: 3px solid #FF5722; /* Accent border */
+}
+
+.monitor-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 25px;
+}
+
+#restaurant-logo {
+    max-width: 120px; /* Adjust size as needed */
+    max-height: 120px;
+    margin-bottom: 15px;
+    border-radius: 0; /* Optional: make it round */
+    object-fit: contain; /* Ensures image covers area without distortion */
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    border: 3px solid #FFC107; /* Matches main theme */
+}
+
+#restaurant-logo.hidden {
+    display: none;
+}
+
+h2 {
+    color: #FF5722; /* Main accent color */
+    font-size: 2.5em;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+#monitor-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px; /* Increased gap */
+    justify-content: center;
+    padding: 0;
+    list-style: none;
+    margin-bottom: 30px; /* Space before tip */
+}
+
+/* Style for individual order number indicators */
+.order-number-indicator {
+    display: flex; /* Use flexbox for centering content */
+    flex-direction: column; /* Stack content vertically */
+    justify-content: center;
+    align-items: center;
+    padding: 15px; /* Adjust padding for square shape */
+    border-radius: 8px; /* Slightly more rounded */
+    font-weight: bold;
+    color: white;
+    width: 160px; /* Fixed width for square */
+    height: 160px; /* Fixed height for square */
+    text-align: center;
+    font-size: 2.2em; /* Larger font size for numbers for better visibility */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease-in-out;
+    border: 2px solid rgba(255, 255, 255, 0.3); /* Subtle white border */
+    position: relative; /* For potential animations */
+    overflow: hidden; /* Ensure content stays within bounds */
+    box-sizing: border-box; /* Include padding and border in the element's total width and height */
+}
+
+.order-id {
+    font-size: 1em; /* Adjust font size relative to parent */
+    margin-bottom: 0; /* No margin needed for a single line */
+}
+
+.order-details {
+    font-size: 0.5em; /* Much smaller for details */
+    color: rgba(255, 255, 255, 0.9);
+    line-height: 1.3;
+    width: 100%;
+    max-width: 150px; /* Constrain width for items */
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.order-customer {
+    font-weight: bold;
+    margin-bottom: 3px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.order-items, .order-notes {
+    font-weight: normal;
+    font-size: 0.9em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    opacity: 0.8;
+}
+
+/* Status Colors - Fast Food Palette */
+.status-Preparando {
+    background: linear-gradient(to bottom right, #FFC107, #FF9800); /* Yellow-orange */
+    animation: pulseOrange 2s infinite ease-in-out;
+}
+
+.status-Listo {
+    background: linear-gradient(to bottom right, #4CAF50, #8BC34A); /* Green, vibrant */
+    transform: scale(1.15); /* More prominent */
+    border-color: #fff; /* Stronger white border */
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+    animation: popGreen 1.5s ease-out; /* Add pop animation on load/ready */
+    position: relative;
+    z-index: 10; /* Ensure it's on top */
+}
+
+.status-Recibido {
+    background-color: #607D8B; /* Blue-grey, subtle */
+    opacity: 0.7; /* Slightly faded */
+    font-size: 1.5em; /* Smaller font */
+    text-decoration: line-through; /* Strikethrough for picked up */
+}
+
+/* Keyframe Animations */
+@keyframes pulseOrange {
+    0% { transform: scale(1); box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); }
+    50% { transform: scale(1.03); box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2); }
+    100% { transform: scale(1); box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); }
+}
+
+@keyframes popGreen {
+    0% { transform: scale(0.8); opacity: 0; }
+    50% { transform: scale(1.2); opacity: 1; }
+    100% { transform: scale(1.15); }
+}
+
+.monitor-tip {
+    font-size: 1.2em;
+    color: #555;
+    margin-top: 20px;
+    font-style: italic;
+}
+
+/* New: Ticket Input Section Styles */
+.ticket-input-section {
+    margin: 20px 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+.ticket-input-section label {
+    font-size: 1.2em;
+    color: #FF5722;
+    font-weight: 600;
+}
+
+.ticket-input-section input {
+    padding: 10px 15px;
+    border: 2px solid #FF5722;
+    border-radius: 25px;
+    font-size: 1.1em;
+    text-align: center;
+    width: 150px;
+    background-color: #fff;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+}
+
+.ticket-input-section input:focus {
+    outline: none;
+    border-color: #FFD700;
+    box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+}
+
+#add-ticket-btn {
+    background: linear-gradient(135deg, #4CAF50 0%, #8BC34A 100%);
+    color: white;
+    padding: 8px 20px;
+    border: none;
+    border-radius: 25px;
+    font-size: 1em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+#add-ticket-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* New styles for tracked tickets display */
+.tracked-tickets-display {
+    background: linear-gradient(135deg, #4CAF50 0%, #8BC34A 100%);
+    color: white;
+    padding: 20px;
+    border-radius: 15px;
+    margin: 20px 0;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    border: 2px solid #fff;
+    transition: all 0.3s ease;
+}
+
+.tracked-tickets-display h3 {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.5em;
+    margin: 0 0 15px 0;
+    color: #fff;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.tracked-tickets-list {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.tracked-ticket {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 10px 20px;
+    border-radius: 25px;
+    font-size: 1.2em;
+    font-weight: bold;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    transition: all 0.3s ease;
+}
+
+.tracked-ticket.ready {
+    background: #FFD700;
+    color: #D32F2F;
+    animation: ticketReady 1.5s ease-in-out;
+}
+
+@keyframes ticketReady {
+    0% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(255, 215, 0, 0.7);
+    }
+    50% {
+        transform: scale(1.1);
+        box-shadow: 0 0 0 10px rgba(255, 215, 0, 0);
+    }
+    100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(255, 215, 0, 0);
+    }
+}
+
+/* Enhanced Ticket Notification Styles */
+.ticket-notification {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: linear-gradient(135deg, #FFD700 0%, #FF8C00 100%);
+    color: #D32F2F;
+    padding: 30px 50px;
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    font-size: 1.8em;
+    font-weight: bold;
+    z-index: 10000;
+    animation: celebratoryPop 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    border: 3px solid #D32F2F;
+    font-family: 'Fredoka One', cursive;
+    text-align: center;
+    backdrop-filter: blur(10px);
+}
+
+.ticket-notification i {
+    display: block;
+    font-size: 3rem;
+    margin-bottom: 15px;
+    animation: bellRing 1s ease-in-out infinite;
+}
+
+@keyframes celebratoryPop {
+    0% {
+        transform: translate(-50%, -50%) scale(0.3) rotate(-10deg);
+        opacity: 0;
+    }
+    50% {
+        transform: translate(-50%, -50%) scale(1.1) rotate(5deg);
+    }
+    100% {
+        transform: translate(-50%, -50%) scale(1) rotate(0deg);
+        opacity: 1;
+    }
+}
+
+@keyframes bellRing {
+    0%, 100% { transform: rotate(-15deg); }
+    25% { transform: rotate(15deg); }
+    50% { transform: rotate(-10deg); }
+    75% { transform: rotate(10deg); }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .monitor-container {
+        padding: 20px;
+    }
+    h2 {
+        font-size: 2em;
+    }
+    #restaurant-logo {
+        max-width: 90px;
+        max-height: 90px;
+    }
+    .order-number-indicator {
+        width: 130px; /* Adjust for square shape */
+        height: 130px; /* Adjust for square shape */
+        padding: 10px;
+        font-size: 1.8em; /* Adjusted font size */
+    }
+    .order-details {
+        font-size: 0.4em;
+        max-width: 120px;
+    }
+    .status-Listo {
+        font-size: 2em; /* Adjusted font size */
+    }
+    .tracked-tickets-display {
+        margin: 15px 0;
+        padding: 15px;
+    }
+    
+    .tracked-tickets-list {
+        gap: 10px;
+    }
+    
+    .tracked-ticket {
+        font-size: 1.1em;
+        padding: 8px 15px;
+    }
+    
+    .ticket-notification {
+        font-size: 1.4em;
+        padding: 25px 40px;
+    }
+}
+
+@media (max-width: 480px) {
+    .monitor-container {
+        padding: 15px;
+    }
+    h2 {
+        font-size: 1.8em;
+    }
+    #restaurant-logo {
+        max-width: 70px;
+        max-height: 70px;
+    }
+    #monitor-list {
+        gap: 10px;
+    }
+    .order-number-indicator {
+        width: 110px; /* Adjust for square shape */
+        height: 110px; /* Adjust for square shape */
+        padding: 8px;
+        font-size: 1.6em; /* Adjusted font size */
+    }
+    .order-details {
+        font-size: 0.35em;
+        max-width: 100px;
+    }
+    .status-Listo {
+        font-size: 1.8em; /* Adjusted font size */
+    }
+    .monitor-tip {
+        font-size: 1em;
+    }
+    .tracked-tickets-display {
+        margin: 10px 0;
+        padding: 10px;
+    }
+    
+    .tracked-tickets-list {
+        gap: 8px;
+    }
+    
+    .tracked-ticket {
+        font-size: 1em;
+        padding: 6px 12px;
+    }
+    
+    .ticket-notification {
+        font-size: 1.2em;
+        padding: 20px 30px;
+    }
+}

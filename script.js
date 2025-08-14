@@ -1,3 +1,6 @@
+import { db, auth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from './firebase-init.js';
+import { doc, getDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+
 document.addEventListener('DOMContentLoaded', () => {
     const placeOrderBtn = document.getElementById('place-order-btn');
     const orderResultDiv = document.getElementById('order-result');
@@ -1979,54 +1982,131 @@ document.addEventListener('DOMContentLoaded', () => {
         settingsIframe.src = 'settings.html';
     });
 
-    const loadUsers = () => {
-        const users = localStorage.getItem('users');
-        if (users) {
-            return JSON.parse(users);
-        }
-        return [{ id: 'admin', username: 'fastVis77', password: 'Fast/Vis/77', role: 'admin' }];
-    };
-
-    const saveUsers = (users) => {
-        localStorage.setItem('users', JSON.stringify(users));
-    };
+    // --- INICIO: LÓGICA DE AUTENTICACIÓN CON FIREBASE ---
 
     const setCurrentUser = (user) => {
         currentUser = user;
-        localStorage.setItem('currentUser', JSON.stringify(user));
+        // Ya no se guarda en localStorage, onAuthStateChanged maneja el estado.
         updateLoginButton();
         updateSidebarVisibility();
-        contentSections.forEach(section => section.classList.add('hidden'));
-        document.getElementById('home-section').classList.remove('hidden'); 
-        if (currentUser && (currentUser.role === 'restaurant' || currentUser.role === 'admin')) {
-            loadAppSettings(); // Load settings for the new user
+
+        if (user) {
+            containerWrapper.classList.remove('hidden');
+            loginModalOverlay.classList.remove('active');
+            loginModalOverlay.classList.add('hidden');
+
+            // Cargar datos específicos del usuario/restaurante
+            loadAppSettings();
             renderMainMenu(loadMenu());
             updateTotalPrice();
             updateDailySummary();
             renderTopItemsChart();
-        } 
-        if (currentUser && currentUser.role === 'admin') {
-            showSection('restaurant-management-section');
+
+            if (user.role === 'admin') {
+                showSection('restaurant-management-section');
+            } else {
+                showSection('home-section');
+            }
         } else {
-            showSection('home-section');
+            // Si no hay usuario, limpiar y mostrar pantalla de login
+            containerWrapper.classList.add('hidden');
+            openLoginModal();
+            // Limpiar datos en pantalla
+            mainMenuUlPlatos.innerHTML = '';
+            mainMenuUlBebidas.innerHTML = '';
+            historyListUl.innerHTML = '<li>Debes iniciar sesión para ver el historial.</li>';
         }
     };
 
-    const getCurrentUser = () => {
-        const user = localStorage.getItem('currentUser');
-        return user ? JSON.parse(user) : null;
-    };
+    // Listener principal que maneja el estado de la sesión
+    onAuthStateChanged(auth, async (user) => {
+        if (user) {
+            // Usuario ha iniciado sesión
+            loginMessage.textContent = 'Verificando datos...';
+            loginMessage.classList.remove('hidden', 'error');
+            loginMessage.classList.add('success');
+
+            // Obtener datos adicionales del usuario desde Firestore (rol, id de restaurante, etc.)
+            const userDocRef = doc(db, "users", user.uid);
+            const userDocSnap = await getDoc(userDocRef);
+
+            if (userDocSnap.exists()) {
+                const userData = userDocSnap.data();
+                // Combinar datos de Auth y Firestore
+                const userProfile = {
+                    uid: user.uid,
+                    email: user.email,
+                    username: userData.username || user.email, // Usar username de firestore o el email
+                    role: userData.role,
+                    id: userData.id // ID del restaurante para usuarios de tipo 'restaurant'
+                };
+                setCurrentUser(userProfile);
+                 loginMessage.textContent = `¡Bienvenido, ${userProfile.username}!`;
+                 setTimeout(() => {
+                    loginMessage.classList.add('hidden');
+                }, 1500);
+            } else {
+                // El usuario existe en Auth pero no en la base de datos de usuarios
+                console.error("Error: No se encontraron datos para el usuario.");
+                loginMessage.textContent = 'Error: Faltan datos de usuario. Contacta al administrador.';
+                loginMessage.classList.remove('success');
+                loginMessage.classList.add('error');
+                await signOut(auth); // Cerrar sesión si el perfil no está completo
+            }
+        } else {
+            // Usuario ha cerrado sesión
+            setCurrentUser(null);
+        }
+    });
+
+    loginBtn.addEventListener('click', async () => {
+        const email = usernameInput.value.trim(); // El campo de usuario ahora es el email
+        const password = passwordInput.value.trim();
+
+        if (!email || !password) {
+            loginMessage.textContent = 'Por favor, ingresa tu email y contraseña.';
+            loginMessage.classList.remove('hidden');
+            loginMessage.classList.add('error');
+            return;
+        }
+
+        loginMessage.textContent = 'Iniciando sesión...';
+        loginMessage.classList.remove('hidden', 'error');
+        loginMessage.classList.add('success');
+        loginBtn.disabled = true;
+
+        try {
+            await signInWithEmailAndPassword(auth, email, password);
+            // El resto de la lógica se maneja en onAuthStateChanged
+        } catch (error) {
+            console.error("Error de inicio de sesión:", error.code, error.message);
+            switch (error.code) {
+                case 'auth/user-not-found':
+                case 'auth/wrong-password':
+                case 'auth/invalid-credential':
+                    loginMessage.textContent = 'Email o contraseña incorrectos.';
+                    break;
+                case 'auth/invalid-email':
+                    loginMessage.textContent = 'El formato del email no es válido.';
+                    break;
+                default:
+                    loginMessage.textContent = 'Ocurrió un error al iniciar sesión.';
+                    break;
+            }
+            loginMessage.classList.remove('success');
+            loginMessage.classList.add('error');
+        } finally {
+            loginBtn.disabled = false;
+        }
+    });
 
     const logout = () => {
-        // Create a custom modal for logout confirmation
         const modal = document.createElement('div');
         modal.id = 'logout-modal';
         modal.innerHTML = `
             <div class="logout-modal-overlay">
                 <div class="logout-modal-content">
-                    <div class="logout-icon">
-                        <i class="fas fa-sign-out-alt"></i>
-                    </div>
+                    <div class="logout-icon"><i class="fas fa-sign-out-alt"></i></div>
                     <h3>¿Cerrar Sesión?</h3>
                     <p>¿Estás seguro de que quieres cerrar tu sesión actual?</p>
                     <div class="logout-buttons">
@@ -2036,127 +2116,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
             </div>
         `;
-        
-        // Add styles
-        const style = document.createElement('style');
-        style.textContent = `
-            .logout-modal-overlay {
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: rgba(0, 0, 0, 0.6);
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                z-index: 1002;
-                animation: fadeIn 0.3s ease;
-            }
-            
-            .logout-modal-content {
-                background: linear-gradient(135deg, #FFD700 0%, #FF8C00 100%);
-                border-radius: 20px;
-                padding: 40px;
-                text-align: center;
-                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-                max-width: 400px;
-                width: 90%;
-                border: 3px solid #D32F2F;
-                animation: slideUp 0.3s ease;
-            }
-            
-            .logout-icon {
-                font-size: 3rem;
-                color: #D32F2F;
-                margin-bottom: 20px;
-            }
-            
-            .logout-modal-content h3 {
-                font-family: 'Fredoka One', cursive;
-                color: #D32F2F;
-                font-size: 1.8rem;
-                margin-bottom: 15px;
-            }
-            
-            .logout-modal-content p {
-                color: #333;
-                font-size: 1.1rem;
-                margin-bottom: 30px;
-                line-height: 1.4;
-            }
-            
-            .logout-buttons {
-                display: flex;
-                gap: 15px;
-                justify-content: center;
-            }
-            
-            .logout-cancel, .logout-confirm {
-                padding: 12px 30px;
-                border: none;
-                border-radius: 25px;
-                font-size: 1.1rem;
-                font-weight: 600;
-                cursor: pointer;
-                transition: all 0.3s ease;
-            }
-            
-            .logout-cancel {
-                background: #f0f0f0;
-                color: #333;
-                border: 2px solid #ccc;
-            }
-            
-            .logout-cancel:hover {
-                background: #e0e0e0;
-                transform: translateY(-2px);
-            }
-            
-            .logout-confirm {
-                background: linear-gradient(135deg, #D32F2F 0%, #B71C1C 100%);
-                color: white;
-                box-shadow: 0 4px 15px rgba(211, 47, 47, 0.3);
-            }
-            
-            .logout-confirm:hover {
-                transform: translateY(-3px);
-                box-shadow: 0 6px 20px rgba(211, 47, 47, 0.4);
-            }
-            
-            @keyframes fadeIn {
-                from { opacity: 0; }
-                to { opacity: 1; }
-            }
-            
-            @keyframes slideUp {
-                from { transform: translateY(-50px); opacity: 0; }
-                to { transform: translateY(0); opacity: 1; }
-            }
-        `;
-        
-        document.head.appendChild(style);
         document.body.appendChild(modal);
-        
-        // Add event listeners
-        modal.querySelector('.logout-cancel').addEventListener('click', () => {
-            modal.remove();
-        });
-        
-        modal.querySelector('.logout-confirm').addEventListener('click', () => {
-            setCurrentUser(null);
+
+        modal.querySelector('.logout-cancel').addEventListener('click', () => modal.remove());
+        modal.querySelector('.logout-confirm').addEventListener('click', async () => {
+            await signOut(auth);
             modal.remove();
             alert('Sesión cerrada correctamente.');
-            containerWrapper.classList.add('hidden');
-            openLoginModal();
-            updateLoginButton();
         });
-        
-        // Close on overlay click
         modal.querySelector('.logout-modal-overlay').addEventListener('click', (e) => {
-            if (e.target === e.currentTarget) {
-                modal.remove();
-            }
+            if (e.target === e.currentTarget) modal.remove();
         });
     };
 
@@ -2191,110 +2160,24 @@ document.addEventListener('DOMContentLoaded', () => {
         usernameInput.value = '';
         passwordInput.value = '';
         loginMessage.classList.add('hidden');
-        loginAttemptsMessage.classList.add('hidden'); // Hide attempts message on opening
         loginModalOverlay.classList.remove('hidden');
         void loginModalOverlay.offsetWidth;
         loginModalOverlay.classList.add('active');
-        containerWrapper.classList.add('hidden');
-        
-        // Load initial login attempts count from session storage
-        const storedAttempts = sessionStorage.getItem('loginAttempts');
-        loginAttempts = storedAttempts ? parseInt(storedAttempts, 10) : 0;
-        updateLoginAttemptsMessage();
     };
 
     closeLoginModalBtn.addEventListener('click', () => {
+        // No cerrar el modal si el usuario no está autenticado
         if (!currentUser) {
             loginMessage.textContent = 'Debes iniciar sesión para usar la aplicación.';
-            loginMessage.classList.remove('hidden', 'success');
+            loginMessage.classList.remove('hidden');
             loginMessage.classList.add('error');
             return;
         }
-
         loginModalOverlay.classList.remove('active');
-        loginModalOverlay.addEventListener('transitionend', function handler() {
-            loginModalOverlay.classList.add('hidden');
-            loginModalOverlay.removeEventListener('transitionend', handler);
-        }, { once: true });
+        loginModalOverlay.classList.add('hidden');
     });
 
-    loginBtn.addEventListener('click', () => {
-        const username = usernameInput.value.trim();
-        const password = passwordInput.value.trim();
-        const users = loadUsers();
-        let restaurants = loadRestaurants(); // Load restaurants to check active status
-
-        const foundUser = users.find(u => u.username === username && u.password === password);
-
-        if (foundUser) {
-            loginAttempts = 0; // Reset attempts on successful login
-            sessionStorage.setItem('loginAttempts', 0); // Save to session storage
-
-            if (foundUser.role === 'restaurant') {
-                const restaurant = restaurants.find(r => r.id === foundUser.id);
-                if (restaurant && !restaurant.active) {
-                    loginMessage.textContent = 'Tu restaurante está inactivo. Contacta al administrador.';
-                    loginMessage.classList.remove('hidden', 'success');
-                    loginMessage.classList.add('error');
-                    return;
-                }
-                // New: Check subscription dates for restaurant users
-                const today = new Date();
-                today.setHours(0, 0, 0, 0); // Normalize to start of day
-                const startDate = restaurant.startDate ? new Date(restaurant.startDate) : null;
-                const endDate = restaurant.endDate ? new Date(restaurant.endDate) : null;
-                
-                if (startDate && today < startDate) {
-                    loginMessage.textContent = `Tu suscripción comienza el ${startDate.toLocaleDateString('es-ES')}.`;
-                    loginMessage.classList.remove('hidden', 'success');
-                    loginMessage.classList.add('error');
-                    return;
-                }
-                if (endDate && today > endDate) {
-                    // Automatically deactivate if end date is passed
-                    if (restaurant.active) {
-                        restaurant.active = false;
-                        saveRestaurants(restaurants); // Save the deactivated status
-                        // Re-fetch restaurants to ensure latest state is used next time
-                        restaurants = loadRestaurants(); 
-                    }
-                    loginMessage.textContent = `Tu suscripción expiró el ${endDate.toLocaleDateString('es-ES')}. Contacta al administrador.`;
-                    loginMessage.classList.remove('hidden', 'success');
-                    loginMessage.classList.add('error');
-                    return;
-                }
-            }
-            setCurrentUser(foundUser);
-            loginMessage.textContent = `¡Bienvenido, ${foundUser.username}!`;
-            loginMessage.classList.remove('hidden', 'error');
-            loginMessage.classList.add('success');
-
-            containerWrapper.classList.remove('hidden');
-            loginModalOverlay.classList.remove('active');
-            loginModalOverlay.classList.add('hidden');
-
-            setTimeout(() => {
-                loginMessage.classList.add('hidden');
-            }, 1000);
-        } else {
-            loginAttempts++;
-            sessionStorage.setItem('loginAttempts', loginAttempts); // Save to session storage
-            updateLoginAttemptsMessage();
-
-            if (loginAttempts >= MAX_LOGIN_ATTEMPTS) {
-                loginMessage.textContent = 'Has excedido el número máximo de intentos. Inténtalo más tarde.';
-                loginMessage.classList.remove('hidden', 'success');
-                loginMessage.classList.add('error');
-                loginBtn.disabled = true; // Disable login button
-                usernameInput.disabled = true;
-                passwordInput.disabled = true;
-            } else {
-                loginMessage.textContent = 'Usuario o contraseña incorrectos.';
-                loginMessage.classList.remove('hidden', 'success');
-                loginMessage.classList.add('error');
-            }
-        }
-    });
+    // --- FIN: LÓGICA DE AUTENTICACIÓN CON FIREBASE ---
 
     // New: Function to update login attempts message
     const updateLoginAttemptsMessage = () => {
@@ -2602,15 +2485,15 @@ document.addEventListener('DOMContentLoaded', () => {
     updateFloatingTotal();
 
     // Initial setup logic
-    currentUser = getCurrentUser(); // Set currentUser at startup
+    //currentUser = getCurrentUser(); // Set currentUser at startup - REMOVED, handled by onAuthStateChanged
 
-    // Ensure admin user exists on first load
-    const allUsers = loadUsers();
-    if (!allUsers.some(user => user.username === 'fastVis77' && user.role === 'admin')) {
-        let currentUsers = allUsers.filter(user => !(user.username === 'admin' && user.role === 'admin')); 
-        currentUsers.push({ id: 'admin', username: 'fastVis77', password: 'Fast/Vis/77', role: 'admin' });
-        saveUsers(currentUsers);
-    }
+    // Ensure admin user exists on first load - REMOVED, handled in Firebase console
+    // const allUsers = loadUsers();
+    // if (!allUsers.some(user => user.username === 'fastVis77' && user.role === 'admin')) {
+    //     let currentUsers = allUsers.filter(user => !(user.username === 'admin' && user.role === 'admin')); 
+    //     currentUsers.push({ id: 'admin', username: 'fastVis77', password: 'Fast/Vis/77', role: 'admin' });
+    //     saveUsers(currentUsers);
+    // }
     
     // Ensure menu is populated with default items if empty
     if (currentUser && (currentUser.role === 'restaurant' || currentUser.role === 'admin')) {
@@ -2629,15 +2512,16 @@ document.addEventListener('DOMContentLoaded', () => {
     updateLoginButton(); // Update button based on current user status
     updateSidebarVisibility(); // Update sidebar visibility based on current user role
 
-    if (currentUser) {
-        containerWrapper.classList.remove('hidden');
-        loginModalOverlay.classList.remove('active');
-        loginModalOverlay.classList.add('hidden');
-        updateDailySummary();
-        renderTopItemsChart();
-    } else {
-        openLoginModal(); // If no user, show login modal
-    }
+    // REMOVED initial logic, onAuthStateChanged will handle showing login or content
+    // if (currentUser) {
+    //     containerWrapper.classList.remove('hidden');
+    //     loginModalOverlay.classList.remove('active');
+    //     loginModalOverlay.classList.add('hidden');
+    //     updateDailySummary();
+    //     renderTopItemsChart();
+    // } else {
+    //     openLoginModal(); // If no user, show login modal
+    // }
 
     // Password visibility toggle for login modal
     (function() {

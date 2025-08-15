@@ -17,12 +17,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Listen for order updates in Firestore
     let unsubscribeOrders = null;
-    const listenToOrders = () => {
-        if (!currentUser) return;
+    const listenToOrders = (user) => {
+        if (!user) return;
         if (unsubscribeOrders) unsubscribeOrders();
         let ordersRef = collection(db, 'orders');
-        if (currentUser.role === 'restaurant') {
-            ordersRef = query(ordersRef, where('restaurantId', '==', currentUser.id));
+        if (user.role === 'restaurant') {
+            ordersRef = query(ordersRef, where('restaurantId', '==', user.id));
         }
         unsubscribeOrders = onSnapshot(ordersRef, (snapshot) => {
             snapshot.docChanges().forEach(change => {
@@ -378,9 +378,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                 currentUser = null;
             }
             await updateHeader();
-            listenToOrders();
+            listenToOrders(currentUser);
         } else {
             currentUser = null;
+            if (unsubscribeOrders) {
+                unsubscribeOrders();
+                unsubscribeOrders = null;
+            }
         }
         renderMonitorView();
     });

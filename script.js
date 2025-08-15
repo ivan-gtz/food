@@ -175,19 +175,28 @@ document.addEventListener('DOMContentLoaded', async () => {
         return 'appSettings'; // Default fallback, though should be covered by user login
     };
 
-    const getAudioContext = () => {
+    const getAudioContext = async () => {
         if (!audioContext) {
             audioContext = new (window.AudioContext || window.webkitAudioContext)();
             gainNode = audioContext.createGain();
             gainNode.connect(audioContext.destination);
-            const savedVolume = parseFloat(appSettings.appVolume !== undefined ? appSettings.appVolume : 1);
+            let savedVolume = 1;
+            if (currentUser && currentUser.id) {
+                try {
+                    const restaurantRef = doc(db, 'restaurants', currentUser.id);
+                    const docSnap = await getDoc(restaurantRef);
+                    savedVolume = parseFloat(docSnap.exists() ? (docSnap.data().settings?.appVolume ?? 1) : 1);
+                } catch (error) {
+                    console.error('Error loading volume:', error);
+                }
+            }
             gainNode.gain.value = savedVolume;
         }
         return audioContext;
     };
 
     const playSound = async (soundPath) => {
-        const context = getAudioContext();
+        const context = await getAudioContext();
         try {
             const response = await fetch(soundPath);
             const arrayBuffer = await response.arrayBuffer();
@@ -211,7 +220,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 gainNode.gain.value = newVolume;
                 console.log('Volume updated in index.js:', newVolume);
             } else {
-                getAudioContext();
+                await getAudioContext();
                 gainNode.gain.value = newVolume;
                 console.log('AudioContext initialized and volume set:', newVolume);
             }
@@ -228,7 +237,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (currentUser && (currentUser.role === 'restaurant' || currentUser.role === 'admin')) {
                 renderMainMenu(loadMenu());
                 updateTotalPrice();
-                updateDailySummary();
+                await updateDailySummary();
                 renderTopItemsChart();
                 renderOrderTypeChart(); // Re-render order type chart on settings update
             }
@@ -593,10 +602,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
 
             if (newStatus === 'Recibido' && oldStatus !== 'Recibido') {
-                trackSoldItems({ ...oldOrder, status: newStatus });
+                await trackSoldItems({ ...oldOrder, status: newStatus });
                 await updateDailySummary();
             } else if (oldStatus === 'Recibido' && newStatus !== 'Recibido') {
-                untrackSoldItems(oldOrder);
+                await untrackSoldItems(oldOrder);
                 await updateDailySummary();
             }
             await renderOrderHistory();
@@ -728,7 +737,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (currentUser && (currentUser.role === 'restaurant' || currentUser.role === 'admin')) {
                     renderMainMenu(loadMenu());
                     updateTotalPrice();
-                    updateDailySummary();
+                    await updateDailySummary();
                 }
             } else if (event.key === 'currentUser' && currentUser) {
                 const newCurrentUser = JSON.parse(event.newValue);
@@ -900,26 +909,26 @@ document.addEventListener('DOMContentLoaded', async () => {
         };
 
         if (oldOrder.status === 'Recibido' && updatedOrder.status !== 'Recibido') {
-            untrackSoldItems(oldOrder);
-            updateDailySummary();
+            await untrackSoldItems(oldOrder);
+            await updateDailySummary();
         } else if (oldOrder.status !== 'Recibido' && updatedOrder.status === 'Recibido') {
-            trackSoldItems(updatedOrder);
-            updateDailySummary();
+            await trackSoldItems(updatedOrder);
+            await updateDailySummary();
         } else if (oldOrder.status === 'Recibido' && updatedOrder.status === 'Recibido') {
             const oldItemNames = new Set(oldOrder.items.map(item => typeof item === 'object' ? item.name : item));
             const newItemNames = new Set(updatedOrder.items.map(item => item.name));
 
-            oldItemNames.forEach(name => {
+            for (const name of oldItemNames) {
                 if (!newItemNames.has(name)) {
-                    untrackSoldItems({ items: [{ name: name }] });
+                    await untrackSoldItems({ items: [{ name }] });
                 }
-            });
-            newItemNames.forEach(name => {
+            }
+            for (const name of newItemNames) {
                 if (!oldItemNames.has(name)) {
-                    trackSoldItems({ items: [{ name: name }] });
+                    await trackSoldItems({ items: [{ name }] });
                 }
-            });
-            updateDailySummary();
+            }
+            await updateDailySummary();
         }
 
         let ordersRef = collection(db, 'orders');
@@ -1127,24 +1136,37 @@ document.addEventListener('DOMContentLoaded', async () => {
         };
     };
 
-    const loadDailySummary = () => {
-        const summary = localStorage.getItem(getStorageKey('dailySummary'));
+    const loadDailySummary = async () => {
         const today = new Date().toDateString();
-        if (summary) {
-            const parsedSummary = JSON.parse(summary);
-            if (parsedSummary.date === today) {
-                return parsedSummary;
+        if (currentUser && currentUser.id) {
+            try {
+                const summaryRef = doc(db, 'restaurants', currentUser.id, 'analytics', 'dailySummary');
+                const docSnap = await getDoc(summaryRef);
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    if (data.date === today) {
+                        return data;
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading daily summary:', error);
             }
         }
         return { date: today, totalOrders: 0, totalRevenue: 0, extraRevenue: 0 };
     };
 
-    const saveDailySummary = (summary) => {
-        localStorage.setItem(getStorageKey('dailySummary'), JSON.stringify(summary));
+    const saveDailySummary = async (summary) => {
+        if (!currentUser || !currentUser.id) return;
+        const summaryRef = doc(db, 'restaurants', currentUser.id, 'analytics', 'dailySummary');
+        try {
+            await setDoc(summaryRef, summary);
+        } catch (error) {
+            console.error('Error saving daily summary:', error);
+        }
     };
 
     const updateDailySummary = async () => {
-        let summary = loadDailySummary();
+        let summary = await loadDailySummary();
         const history = await loadOrderHistory();
         const today = new Date().toDateString();
 
@@ -1157,18 +1179,24 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         summary.extraRevenue = 0;
 
-        saveDailySummary(summary);
+        await saveDailySummary(summary);
         summaryTotalOrdersSpan.textContent = summary.totalOrders;
         summaryTotalRevenueSpan.textContent = summary.totalRevenue.toFixed(2);
         summaryExtraRevenueSpan.textContent = summary.extraRevenue.toFixed(2);
         summaryCurrencyDisplaySpan.textContent = appSettings.currencySymbol || '$';
     };
 
-    const resetDailySummary = () => {
+    const resetDailySummary = async () => {
         const confirmed = confirm('¿Estás seguro de que quieres reiniciar el resumen del día? Esto borrará los datos de hoy.');
         if (confirmed) {
-            localStorage.removeItem(getStorageKey('dailySummary'));
-            updateDailySummary();
+            if (currentUser && currentUser.id) {
+                try {
+                    await deleteDoc(doc(db, 'restaurants', currentUser.id, 'analytics', 'dailySummary'));
+                } catch (error) {
+                    console.error('Error resetting daily summary:', error);
+                }
+            }
+            await updateDailySummary();
             orderResultDiv.classList.remove('error');
             orderResultDiv.style.color = 'orange';
             orderResultDiv.textContent = 'Resumen del día reiniciado.';
@@ -1214,8 +1242,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         doc.save(`${fileName}.pdf`);
     };
 
-    downloadSummaryBtn.addEventListener('click', () => {
-        const summary = loadDailySummary();
+    downloadSummaryBtn.addEventListener('click', async () => {
+        const summary = await loadDailySummary();
         const currencySymbol = appSettings.currencySymbol || '$';
         const contentHtml = `
             <p><strong>Resumen de Pedidos del Día: ${summary.date}</strong></p>
@@ -1225,29 +1253,42 @@ document.addEventListener('DOMContentLoaded', async () => {
         generatePdfReport('Resumen del Día', contentHtml, `Resumen_Diario_${new Date().toLocaleDateString('es-ES').replace(/\//g, '-')}`);
     });
 
-    const loadTopItems = () => {
-        const topItems = localStorage.getItem(getStorageKey('topItemsSold'));
-        return topItems ? JSON.parse(topItems) : {};
+    const loadTopItems = async () => {
+        if (!currentUser || !currentUser.id) return {};
+        try {
+            const topItemsRef = doc(db, 'restaurants', currentUser.id, 'analytics', 'topItems');
+            const docSnap = await getDoc(topItemsRef);
+            return docSnap.exists() ? docSnap.data() : {};
+        } catch (error) {
+            console.error('Error loading top items:', error);
+            return {};
+        }
     };
 
-    const saveTopItems = (topItems) => {
-        localStorage.setItem(getStorageKey('topItemsSold'), JSON.stringify(topItems));
+    const saveTopItems = async (topItems) => {
+        if (!currentUser || !currentUser.id) return;
+        const topItemsRef = doc(db, 'restaurants', currentUser.id, 'analytics', 'topItems');
+        try {
+            await setDoc(topItemsRef, topItems);
+        } catch (error) {
+            console.error('Error saving top items:', error);
+        }
     };
 
-    const trackSoldItems = (order) => {
-        let topItems = loadTopItems();
+    const trackSoldItems = async (order) => {
+        let topItems = await loadTopItems();
         order.items.forEach(item => {
             const itemName = typeof item === 'object' ? item.name : item;
             topItems[itemName] = (topItems[itemName] || 0) + 1;
         });
-        saveTopItems(topItems);
+        await saveTopItems(topItems);
         if (!topItemsDiv.classList.contains('hidden')) {
-            renderTopItemsChart();
+            await renderTopItemsChart();
         }
     };
 
-    const untrackSoldItems = (order) => {
-        let topItems = loadTopItems();
+    const untrackSoldItems = async (order) => {
+        let topItems = await loadTopItems();
         order.items.forEach(item => {
             const itemName = typeof item === 'object' ? item.name : item;
             if (topItems[itemName] && topItems[itemName] > 0) {
@@ -1257,9 +1298,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             }
         });
-        saveTopItems(topItems);
+        await saveTopItems(topItems);
         if (!topItemsDiv.classList.contains('hidden')) {
-            renderTopItemsChart();
+            await renderTopItemsChart();
         }
     };
 
@@ -1367,10 +1408,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     };
 
-    const resetTopItems = () => {
+    const resetTopItems = async () => {
         const confirmed = confirm('¿Estás seguro de que quieres reiniciar los datos de los artículos vendidos? Esto borrará el historial de popularidad de los artículos.');
         if (confirmed) {
-            renderTopItemsChart(); // Re-render to show updated (or lack of) data
+            if (currentUser && currentUser.id) {
+                try {
+                    await deleteDoc(doc(db, 'restaurants', currentUser.id, 'analytics', 'topItems'));
+                } catch (error) {
+                    console.error('Error resetting top items:', error);
+                }
+            }
+            await renderTopItemsChart(); // Re-render to show updated (or lack of) data
             renderOrderTypeChart(); // Re-render order type chart as well
             orderResultDiv.classList.remove('error');
             orderResultDiv.style.color = 'orange';
@@ -1785,7 +1833,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 cancelEditing();
                 break;
             case 'daily-summary':
-                updateDailySummary();
+                await updateDailySummary();
                 break;
             case 'top-items':
                 renderTopItemsChart();
@@ -1890,9 +1938,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             const deletions = ordersSnapshot.docs.map(d => deleteDoc(doc(db, 'orders', d.id)));
             await Promise.all(deletions);
             await setDoc(doc(db, 'counters', 'orderNumber'), { value: 0 });
-            localStorage.removeItem(getStorageKey('dailySummary'));
-            localStorage.removeItem(getStorageKey('topItemsSold'));
-            localStorage.removeItem(getStorageKey('appSettings')); // Clear settings for the specific restaurant/admin
+            if (currentUser && currentUser.id) {
+                await deleteDoc(doc(db, 'restaurants', currentUser.id, 'analytics', 'dailySummary'));
+                await deleteDoc(doc(db, 'restaurants', currentUser.id, 'analytics', 'topItems'));
+            }
 
             if (!orderHistoryDiv.classList.contains('hidden')) {
                 historyListUl.innerHTML = '<li>Historial de pedidos restablecido.</li>';
@@ -1943,8 +1992,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             await loadAppSettings();
             renderMainMenu(await loadMenu());
             updateTotalPrice();
-            updateDailySummary();
-            renderTopItemsChart();
+            await updateDailySummary();
+            await renderTopItemsChart();
 
             if (user.role === 'admin') {
                 await showSection('restaurant-management-section');
@@ -2677,7 +2726,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         doc.text('Resumen General', 10, yOffset);
         yOffset += 5;
 
-        const summary = loadDailySummary(); // Reuse daily summary logic for overall revenue
+        const summary = await loadDailySummary(); // Reuse daily summary logic for overall revenue
         const totalOverallRevenue = history.reduce((sum, order) => {
             return sum + (order.totalPrice + (order.extraPayment ? order.extraPayment.amount : 0));
         }, 0);

@@ -772,7 +772,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         editOrderItemsListPlatos.innerHTML = '';
         editOrderItemsListBebidas.innerHTML = '';
         editOrderItemsListPostres.innerHTML = '';
-
         const menuItems = await loadMenu();
         const currencySymbol = appSettings.currencySymbol || '$';
 

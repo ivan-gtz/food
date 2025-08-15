@@ -1,7 +1,7 @@
 import { db, auth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from './firebase-init.js';
 import { doc, getDoc, collection, getDocs, setDoc, updateDoc, deleteDoc, addDoc, runTransaction, query, where } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     const placeOrderBtn = document.getElementById('place-order-btn');
     const orderResultDiv = document.getElementById('order-result');
     const customerNameInput = document.getElementById('customer-name');
@@ -204,7 +204,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    window.addEventListener('message', (event) => {
+    window.addEventListener('message', async (event) => {
         if (event.origin !== window.location.origin) return;
 
         if (event.data && event.data.type === 'volumeChanged') {
@@ -226,8 +226,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }, { once: true });
         } else if (event.data && event.data.type === 'settingsUpdated') {
             console.log('Settings updated from iframe. Monitor(s) will refresh via storage event.');
-            loadAppSettings(); // Reload settings in the main app
-            if (currentUser && (currentUser.role === 'restaurant' || currentUser.role === 'admin')) { 
+            await loadAppSettings(); // Reload settings in the main app
+            if (currentUser && (currentUser.role === 'restaurant' || currentUser.role === 'admin')) {
                 renderMainMenu(loadMenu());
                 updateTotalPrice();
                 updateDailySummary();
@@ -237,8 +237,18 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    const loadAppSettings = () => {
-        appSettings = JSON.parse(localStorage.getItem(getSettingsKey()) || '{}');
+    const loadAppSettings = async () => {
+        appSettings = {};
+        if (currentUser && currentUser.id) {
+            try {
+                const restaurantRef = doc(db, 'restaurants', currentUser.id);
+                const docSnap = await getDoc(restaurantRef);
+                appSettings = docSnap.exists() ? (docSnap.data().settings || {}) : {};
+                localStorage.setItem(getSettingsKey(), JSON.stringify(appSettings));
+            } catch (error) {
+                console.error('Error loading app settings:', error);
+            }
+        }
         currencyDisplaySpan.textContent = appSettings.currencySymbol || '$';
         floatingCurrencyDisplay.textContent = appSettings.currencySymbol || '$';
     };
@@ -709,12 +719,12 @@ document.addEventListener('DOMContentLoaded', () => {
             historyPaginationControlsDiv.appendChild(nextButton);
         }
 
-        window.addEventListener('storage', (event) => {
+        window.addEventListener('storage', async (event) => {
             const relevantAppSettingsKey = getSettingsKey();
 
             if (event.key === relevantAppSettingsKey) {
                 console.log('Settings updated from iframe. Monitor(s) will refresh via storage event.');
-                loadAppSettings();
+                await loadAppSettings();
                 if (currentUser && (currentUser.role === 'restaurant' || currentUser.role === 'admin')) {
                     renderMainMenu(loadMenu());
                     updateTotalPrice();
@@ -961,7 +971,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     const generateInvoice = (order) => {
-        const appSettings = JSON.parse(localStorage.getItem(getSettingsKey()) || '{}');
         const restaurantName = appSettings.restaurantName || 'Mi Restaurante';
         const restaurantLogoUrl = appSettings.restaurantLogoUrl || '';
         const currencySymbol = appSettings.currencySymbol || '$';
@@ -1897,7 +1906,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             await updateDailySummary();
             await renderTopItemsChart();
-            loadAppSettings(); // Reload settings as they might have been cleared
+            await loadAppSettings(); // Reload settings as they might have been cleared
         } else {
             orderResultDiv.classList.remove('error');
             orderResultDiv.style.color = '#333';
@@ -1931,7 +1940,7 @@ document.addEventListener('DOMContentLoaded', () => {
             loginModalOverlay.classList.add('hidden');
 
             // Cargar datos específicos del usuario/restaurante
-            loadAppSettings();
+            await loadAppSettings();
             renderMainMenu(await loadMenu());
             updateTotalPrice();
             updateDailySummary();
@@ -2325,7 +2334,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Always load and render the menu regardless of user state
-    loadAppSettings(); // Load settings
+    await loadAppSettings(); // Load settings
     const initialMenu = loadMenu();
     renderMainMenu(initialMenu);
     updateTotalPrice();

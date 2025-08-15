@@ -31,29 +31,30 @@ document.addEventListener('DOMContentLoaded', async () => {
     let currentRestaurantId = null;
     let orderHistory = [];
 
-    const { db } = await import('./firebase-init.js');
+    const { db, auth, onAuthStateChanged } = await import('./firebase-init.js');
     const { collection, onSnapshot, query, where, getDocs, doc, updateDoc, getDoc } = await import('https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js');
 
-    // Security check function
+    // Security check function using Firebase Auth
     const checkSecurityAccess = () => {
-        const storedAuth = localStorage.getItem('monitorDetailsAuthenticated');
-        const storedId = localStorage.getItem('monitorDetailsRestaurantId');
-        
-        if (storedAuth === 'true' && storedId) {
-            isAuthenticated = true;
-            currentRestaurantId = storedId;
-            return true;
-        }
-        
-        return false;
-    };
-
-    // Clear authentication on page refresh/load
-    const clearAuthentication = () => {
-        localStorage.removeItem('monitorDetailsAuthenticated');
-        localStorage.removeItem('monitorDetailsRestaurantId');
-        isAuthenticated = false;
-        currentRestaurantId = null;
+        return new Promise((resolve) => {
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    try {
+                        const userDoc = await getDoc(doc(db, 'users', user.uid));
+                        currentUser = userDoc.exists() ? { uid: user.uid, ...userDoc.data() } : null;
+                        if (currentUser && currentUser.role === 'restaurant' && currentUser.id) {
+                            isAuthenticated = true;
+                            currentRestaurantId = currentUser.id;
+                            resolve(true);
+                            return;
+                        }
+                    } catch (e) {
+                        console.error('Error fetching user data:', e);
+                    }
+                }
+                resolve(false);
+            });
+        });
     };
 
     // Show security modal
@@ -61,15 +62,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         securityModal.classList.remove('hidden');
         void securityModal.offsetWidth;
         securityModal.classList.add('active');
-        
+
         const securityInput = document.getElementById('security-restaurant-id');
         const securityConfirm = document.getElementById('security-confirm-btn');
         const securityCancel = document.getElementById('security-cancel-btn');
         const securityMessage = document.getElementById('security-message');
-        
+
         securityInput.focus();
-        
-        securityConfirm.onclick = () => {
+
+        securityConfirm.onclick = async () => {
             const restaurantId = securityInput.value.trim().toUpperCase();
             if (!restaurantId) {
                 securityMessage.textContent = 'Por favor ingresa un ID de restaurante válido';
@@ -77,28 +78,32 @@ document.addEventListener('DOMContentLoaded', async () => {
                 securityMessage.classList.add('error');
                 return;
             }
-            
-            const restaurants = loadRestaurants();
-            const restaurant = restaurants.find(r => r.id === restaurantId && r.active);
-            
-            if (restaurant) {
-                localStorage.setItem('monitorDetailsAuthenticated', 'true');
-                localStorage.setItem('monitorDetailsRestaurantId', restaurantId);
-                currentRestaurantId = restaurantId;
-                isAuthenticated = true;
-                
-                securityModal.classList.remove('active');
-                setTimeout(() => {
-                    securityModal.classList.add('hidden');
-                    initializeApp(restaurantId);
-                }, 300);
-            } else {
-                securityMessage.textContent = 'ID de restaurante inválido o restaurante inactivo';
+
+            try {
+                const docSnap = await getDoc(doc(db, 'restaurants', restaurantId));
+                const restaurant = docSnap.exists() ? docSnap.data() : null;
+                if (restaurant && restaurant.active) {
+                    currentRestaurantId = restaurantId;
+                    isAuthenticated = true;
+
+                    securityModal.classList.remove('active');
+                    setTimeout(() => {
+                        securityModal.classList.add('hidden');
+                        initializeApp(restaurantId);
+                    }, 300);
+                } else {
+                    securityMessage.textContent = 'ID de restaurante inválido o restaurante inactivo';
+                    securityMessage.classList.remove('hidden');
+                    securityMessage.classList.add('error');
+                }
+            } catch (e) {
+                console.error('Error verifying restaurant:', e);
+                securityMessage.textContent = 'Error verificando el ID del restaurante';
                 securityMessage.classList.remove('hidden');
                 securityMessage.classList.add('error');
             }
         };
-        
+
         securityCancel.onclick = () => {
             securityModal.classList.remove('active');
             setTimeout(() => {
@@ -109,49 +114,38 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     // Initialize app after authentication
-    const initializeApp = (restaurantId) => {
-        // Update header with restaurant info
-        const restaurants = loadRestaurants();
-        const restaurant = restaurants.find(r => r.id === restaurantId);
-        
-        if (restaurant) {
-            restaurantNameElement.textContent = restaurant.name;
-            
-            // Add authenticated indicator
-            const authIndicator = document.createElement('div');
-            authIndicator.style.cssText = `
-                position: absolute;
-                top: 10px;
-                right: 10px;
-                background: #4CAF50;
-                color: white;
-                padding: 5px 10px;
-                border-radius: 15px;
-                font-size: 0.8em;
-                font-weight: bold;
-            `;
-            authIndicator.textContent = ` ${restaurantId}`;
-            monitorDetailsHeader.appendChild(authIndicator);
+    const initializeApp = async (restaurantId) => {
+        try {
+            const docSnap = await getDoc(doc(db, 'restaurants', restaurantId));
+            if (docSnap.exists()) {
+                const restaurant = docSnap.data();
+                restaurantNameElement.textContent = restaurant.name;
+
+                // Add authenticated indicator
+                const authIndicator = document.createElement('div');
+                authIndicator.style.cssText = `
+                    position: absolute;
+                    top: 10px;
+                    right: 10px;
+                    background: #4CAF50;
+                    color: white;
+                    padding: 5px 10px;
+                    border-radius: 15px;
+                    font-size: 0.8em;
+                    font-weight: bold;
+                `;
+                authIndicator.textContent = ` ${restaurantId}`;
+                monitorDetailsHeader.appendChild(authIndicator);
+            }
+
+            // Load settings and update header
+            await updateHeader();
+
+            // Listen to Firestore orders
+            listenToOrders(restaurantId);
+        } catch (e) {
+            console.error('Error initializing app:', e);
         }
-        
-          // Load settings
-          loadAppSettings();
-          updateHeader();
-
-          // Listen to Firestore orders
-          listenToOrders(restaurantId);
-      };
-
-    // Function to get the current user from localStorage
-    const getCurrentUser = () => {
-        const user = localStorage.getItem('currentUser');
-        return user ? JSON.parse(user) : null;
-    };
-
-    // Function to load restaurants
-    const loadRestaurants = () => {
-        const restaurants = localStorage.getItem('restaurants');
-        return restaurants ? JSON.parse(restaurants) : [];
     };
 
     // Firestore real-time listener for orders
@@ -180,13 +174,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     };
 
-    // Function to load settings from localStorage
-    const loadAppSettings = () => {
+    // Function to load settings from Firestore
+    const loadAppSettings = async () => {
         if (!currentRestaurantId) return {};
-        
-        const settingsKey = `restaurant_${currentRestaurantId}_appSettings`;
-        const settings = localStorage.getItem(settingsKey);
-        return settings ? JSON.parse(settings) : {};
+        try {
+            const restaurantRef = doc(db, 'restaurants', currentRestaurantId);
+            const docSnap = await getDoc(restaurantRef);
+            return docSnap.exists() ? (docSnap.data().settings || {}) : {};
+        } catch (error) {
+            console.error('Error loading settings:', error);
+            return {};
+        }
     };
 
     const getRestaurantVolume = async () => {
@@ -203,8 +201,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     // Function to update restaurant name and logo on the monitor
-    const updateHeader = () => {
-        const settings = loadAppSettings();
+    const updateHeader = async () => {
+        const settings = await loadAppSettings();
         const restaurantName = settings.restaurantName || 'Monitor de Detalles de Pedidos';
         const restaurantLogoDataUrl = settings.restaurantLogoUrl;
 
@@ -343,9 +341,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
 
-    // Clear authentication on page load/refresh
-    clearAuthentication();
-
-    // Always show security modal on load
-    showSecurityModal();
+    if (await checkSecurityAccess()) {
+        initializeApp(currentRestaurantId);
+    } else {
+        showSecurityModal();
+    }
 });

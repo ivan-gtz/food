@@ -12,14 +12,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     let currentUser = null; // Variable to store current user
     let orderHistory = []; // Orders fetched from Firestore
 
-    const { db } = await import('./firebase-init.js');
-    const { collection, onSnapshot, query, where } = await import('https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js');
-
-    // Function to get the current user from localStorage
-    const getCurrentUser = () => {
-        const user = localStorage.getItem('currentUser');
-        return user ? JSON.parse(user) : null;
-    };
+    const { db, auth, onAuthStateChanged } = await import('./firebase-init.js');
+    const { collection, onSnapshot, query, where, doc, getDoc } = await import('https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js');
 
     // Listen for order updates in Firestore
     let unsubscribeOrders = null;
@@ -48,21 +42,27 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     };
 
-    // Function to load settings (restaurant name and logo) from localStorage
-    const loadSettings = () => {
+    // Function to load settings (restaurant name and logo) from Firestore
+    const loadSettings = async () => {
         if (!currentUser) {
             console.error("Cannot load settings: No user logged in.");
             return {};
         }
-        // Settings are now user-specific
-        const settingsKey = currentUser.role === 'restaurant' ? `restaurant_${currentUser.id}_appSettings` : `admin_appSettings`;
-        const settings = localStorage.getItem(settingsKey);
-        return settings ? JSON.parse(settings) : {};
+        try {
+            const docRef = currentUser.role === 'restaurant'
+                ? doc(db, 'restaurants', currentUser.id)
+                : doc(db, 'users', currentUser.uid);
+            const docSnap = await getDoc(docRef);
+            return docSnap.exists() ? (docSnap.data().settings || {}) : {};
+        } catch (e) {
+            console.error('Error loading settings:', e);
+            return {};
+        }
     };
 
     // Function to update restaurant name and logo on the monitor
-    const updateHeader = () => {
-        const settings = loadSettings();
+    const updateHeader = async () => {
+        const settings = await loadSettings();
         const restaurantName = settings.restaurantName || 'Monitor de Pedidos';
         const restaurantLogoDataUrl = settings.restaurantLogoUrl; // Now expects a Data URL
 
@@ -368,8 +368,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Event listeners
     addTicketBtn.addEventListener('click', addTicket);
 
-    // Initial load of currentUser and start listening to orders
-    currentUser = getCurrentUser();
-    updateHeader();
-    listenToOrders();
+    onAuthStateChanged(auth, async (user) => {
+        if (user) {
+            try {
+                const userDoc = await getDoc(doc(db, 'users', user.uid));
+                currentUser = userDoc.exists() ? { uid: user.uid, ...userDoc.data() } : null;
+            } catch (e) {
+                console.error('Error fetching user data:', e);
+                currentUser = null;
+            }
+            await updateHeader();
+            listenToOrders();
+        } else {
+            currentUser = null;
+        }
+        renderMonitorView();
+    });
 });

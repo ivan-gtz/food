@@ -1,4 +1,4 @@
-import { db } from './firebase-init.js';
+import { db, auth, onAuthStateChanged } from './firebase-init.js';
 import { doc, getDoc, updateDoc } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -11,56 +11,57 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     let currentUser = null;
 
-    const getCurrentUser = () => {
-        const user = localStorage.getItem('currentUser');
-        return user ? JSON.parse(user) : null;
-    };
-
-    const getSettingsKey = () => {
-        if (currentUser && currentUser.role === 'restaurant' && currentUser.id) {
-            return `restaurant_${currentUser.id}_appSettings`;
-        } else if (currentUser && currentUser.role === 'admin') {
-            return `admin_appSettings`;
-        }
-        return 'appSettings';
-    };
-
-    const setGlobalVolume = (volume) => {
+    const setGlobalVolume = async (volume) => {
         console.log(`Global volume set to: ${volume}`);
-        localStorage.setItem(getSettingsKey().replace('_appSettings', '_appVolume'), volume);
+        if (currentUser) {
+            try {
+                if (currentUser.role === 'restaurant' && currentUser.id) {
+                    const restaurantRef = doc(db, 'restaurants', currentUser.id);
+                    await updateDoc(restaurantRef, { 'settings.appVolume': volume });
+                } else {
+                    const userRef = doc(db, 'users', currentUser.uid);
+                    await updateDoc(userRef, { 'settings.appVolume': volume });
+                }
+            } catch (error) {
+                console.error('Error saving volume:', error);
+            }
+        }
         if (window.parent) {
             window.parent.postMessage({ type: 'volumeChanged', volume: volume }, window.location.origin);
         }
     };
 
     const loadAndApplySettings = async () => {
-        currentUser = getCurrentUser();
-        const savedVolume = localStorage.getItem(getSettingsKey().replace('_appSettings', '_appVolume'));
-        volumeControl.value = savedVolume !== null ? parseFloat(savedVolume) : 1;
-
-        if (!currentUser || !currentUser.id) {
+        if (!currentUser) {
+            volumeControl.value = 1;
             restaurantNameInput.value = '';
             currencySymbolInput.value = '';
             return;
         }
 
         try {
-            const restaurantRef = doc(db, 'restaurants', currentUser.id);
-            const docSnap = await getDoc(restaurantRef);
+            let docRef;
+            if (currentUser.role === 'restaurant' && currentUser.id) {
+                docRef = doc(db, 'restaurants', currentUser.id);
+            } else {
+                docRef = doc(db, 'users', currentUser.uid);
+            }
+            const docSnap = await getDoc(docRef);
             const appSettings = docSnap.exists() ? (docSnap.data().settings || {}) : {};
+            volumeControl.value = appSettings.appVolume !== undefined ? parseFloat(appSettings.appVolume) : 1;
             restaurantNameInput.value = appSettings.restaurantName || '';
             currencySymbolInput.value = appSettings.currencySymbol || '';
         } catch (error) {
             console.error('Error loading settings:', error);
+            volumeControl.value = 1;
         }
     };
 
-    volumeControl.addEventListener('input', (event) => {
-        setGlobalVolume(event.target.value);
+    volumeControl.addEventListener('input', async (event) => {
+        await setGlobalVolume(event.target.value);
     });
 
     saveSettingsBtn.addEventListener('click', async () => {
-        currentUser = getCurrentUser();
         if (!currentUser || !currentUser.id) {
             alert('No se pudo identificar el restaurante.');
             return;
@@ -158,6 +159,19 @@ document.addEventListener('DOMContentLoaded', async () => {
         settingsModal.classList.add('active');
     }
 
-    loadAndApplySettings();
+    onAuthStateChanged(auth, async (user) => {
+        if (user) {
+            try {
+                const userDoc = await getDoc(doc(db, 'users', user.uid));
+                currentUser = userDoc.exists() ? { uid: user.uid, ...userDoc.data() } : null;
+            } catch (error) {
+                console.error('Error fetching user data:', error);
+                currentUser = null;
+            }
+        } else {
+            currentUser = null;
+        }
+        await loadAndApplySettings();
+    });
 });
 

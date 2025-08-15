@@ -180,9 +180,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             audioContext = new (window.AudioContext || window.webkitAudioContext)();
             gainNode = audioContext.createGain();
             gainNode.connect(audioContext.destination);
-            // Load volume specific to the current user
-            // Corrected: Use the same logic for volume key as in settings.js
-            const savedVolume = parseFloat(localStorage.getItem(getSettingsKey().replace('_appSettings', '_appVolume')) || '1'); 
+            const savedVolume = parseFloat(appSettings.appVolume !== undefined ? appSettings.appVolume : 1);
             gainNode.gain.value = savedVolume;
         }
         return audioContext;

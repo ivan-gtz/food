@@ -1,5 +1,5 @@
 import { db, auth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from './firebase-init.js';
-import { doc, getDoc, collection, getDocs, setDoc, updateDoc, deleteDoc, addDoc, runTransaction } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+import { doc, getDoc, collection, getDocs, setDoc, updateDoc, deleteDoc, addDoc, runTransaction, query, where } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 
 document.addEventListener('DOMContentLoaded', () => {
     const placeOrderBtn = document.getElementById('place-order-btn');
@@ -546,7 +546,11 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const loadOrderHistory = async () => {
-        const snapshot = await getDocs(collection(db, 'orders'));
+        let ordersRef = collection(db, 'orders');
+        if (currentUser && currentUser.role === 'restaurant') {
+            ordersRef = query(ordersRef, where('restaurantId', '==', currentUser.id));
+        }
+        const snapshot = await getDocs(ordersRef);
         const history = [];
         snapshot.forEach(docSnap => {
             history.push(docSnap.data());
@@ -559,13 +563,16 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const updateOrderStatus = async (orderId, newStatus) => {
-        const snapshot = await getDocs(collection(db, 'orders'));
-        let targetDoc = null;
-        snapshot.forEach(docSnap => {
-            if (docSnap.data().id === parseInt(orderId, 10)) {
-                targetDoc = docSnap;
-            }
-        });
+        const idNum = parseInt(orderId, 10);
+        let ordersRef = collection(db, 'orders');
+        let q;
+        if (currentUser && currentUser.role === 'restaurant') {
+            q = query(ordersRef, where('id', '==', idNum), where('restaurantId', '==', currentUser.id));
+        } else {
+            q = query(ordersRef, where('id', '==', idNum));
+        }
+        const snapshot = await getDocs(q);
+        const targetDoc = snapshot.docs[0];
 
         if (targetDoc) {
             const oldOrder = targetDoc.data();
@@ -905,13 +912,15 @@ document.addEventListener('DOMContentLoaded', () => {
             updateDailySummary();
         }
 
-        const snapshot = await getDocs(collection(db, 'orders'));
-        let targetDoc = null;
-        snapshot.forEach(docSnap => {
-            if (docSnap.data().id === editingOrderId) {
-                targetDoc = docSnap;
-            }
-        });
+        let ordersRef = collection(db, 'orders');
+        let q;
+        if (currentUser && currentUser.role === 'restaurant') {
+            q = query(ordersRef, where('id', '==', editingOrderId), where('restaurantId', '==', currentUser.id));
+        } else {
+            q = query(ordersRef, where('id', '==', editingOrderId));
+        }
+        const snapshot = await getDocs(q);
+        const targetDoc = snapshot.docs[0];
 
         if (targetDoc) {
             await updateDoc(doc(db, 'orders', targetDoc.id), updatedOrder);
@@ -1417,7 +1426,8 @@ document.addEventListener('DOMContentLoaded', () => {
             extraPayment: null,
             timestamp: Date.now(),
             status: "Preparando",
-            orderType: orderType
+            orderType: orderType,
+            restaurantId: currentUser ? currentUser.id : null
         };
 
         await addOrderToHistory(newOrder);
@@ -1863,7 +1873,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const confirmed = confirm('¿Estás seguro de que quieres restablecer todo el historial de pedidos? Esta acción no se puede deshacer.');
 
         if (confirmed) {
-            const ordersSnapshot = await getDocs(collection(db, 'orders'));
+            let ordersRef = collection(db, 'orders');
+            if (currentUser && currentUser.role === 'restaurant') {
+                ordersRef = query(ordersRef, where('restaurantId', '==', currentUser.id));
+            }
+            const ordersSnapshot = await getDocs(ordersRef);
             const deletions = ordersSnapshot.docs.map(d => deleteDoc(doc(db, 'orders', d.id)));
             await Promise.all(deletions);
             await setDoc(doc(db, 'counters', 'orderNumber'), { value: 0 });

@@ -1,4 +1,7 @@
-document.addEventListener('DOMContentLoaded', () => {
+import { db } from './firebase-init.js';
+import { doc, getDoc, updateDoc } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js';
+
+document.addEventListener('DOMContentLoaded', async () => {
     const closeSettingsBtn = document.getElementById('close-settings-btn');
     const volumeControl = document.getElementById('volume-control');
     const restaurantNameInput = document.getElementById('restaurant-name-input');
@@ -30,56 +33,84 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    const loadAndApplySettings = () => {
+    const loadAndApplySettings = async () => {
         currentUser = getCurrentUser();
         const savedVolume = localStorage.getItem(getSettingsKey().replace('_appSettings', '_appVolume'));
-        if (savedVolume !== null) {
-            volumeControl.value = parseFloat(savedVolume);
-        } else {
-            volumeControl.value = 1;
+        volumeControl.value = savedVolume !== null ? parseFloat(savedVolume) : 1;
+
+        if (!currentUser || !currentUser.id) {
+            restaurantNameInput.value = '';
+            currencySymbolInput.value = '';
+            return;
         }
 
-        const appSettings = JSON.parse(localStorage.getItem(getSettingsKey()) || '{}');
-        restaurantNameInput.value = appSettings.restaurantName || '';
-        currencySymbolInput.value = appSettings.currencySymbol || '';
+        try {
+            const restaurantRef = doc(db, 'restaurants', currentUser.id);
+            const docSnap = await getDoc(restaurantRef);
+            const appSettings = docSnap.exists() ? (docSnap.data().settings || {}) : {};
+            restaurantNameInput.value = appSettings.restaurantName || '';
+            currencySymbolInput.value = appSettings.currencySymbol || '';
+        } catch (error) {
+            console.error('Error loading settings:', error);
+        }
     };
 
     volumeControl.addEventListener('input', (event) => {
         setGlobalVolume(event.target.value);
     });
 
-    saveSettingsBtn.addEventListener('click', () => {
+    saveSettingsBtn.addEventListener('click', async () => {
         currentUser = getCurrentUser();
-        
+        if (!currentUser || !currentUser.id) {
+            alert('No se pudo identificar el restaurante.');
+            return;
+        }
+
         const settingsToSave = {
             restaurantName: restaurantNameInput.value.trim(),
             restaurantLogoUrl: '',
             currencySymbol: currencySymbolInput.value.trim()
         };
 
+        const restaurantRef = doc(db, 'restaurants', currentUser.id);
+
+        const saveToFirestore = async () => {
+            try {
+                await updateDoc(restaurantRef, {
+                    'settings.restaurantName': settingsToSave.restaurantName,
+                    'settings.restaurantLogoUrl': settingsToSave.restaurantLogoUrl,
+                    'settings.currencySymbol': settingsToSave.currencySymbol
+                });
+                displaySaveFeedback();
+                notifyParentAboutSettingsUpdate();
+            } catch (error) {
+                console.error('Error saving settings:', error);
+                alert('No se pudieron guardar los ajustes.');
+            }
+        };
+
         const file = restaurantLogoUpload.files[0];
         if (file) {
             const reader = new FileReader();
-            reader.onload = (e) => {
+            reader.onload = async (e) => {
                 settingsToSave.restaurantLogoUrl = e.target.result;
-                localStorage.setItem(getSettingsKey(), JSON.stringify(settingsToSave));
-                displaySaveFeedback();
-                notifyParentAboutSettingsUpdate();
+                await saveToFirestore();
             };
-            reader.onerror = () => {
-                console.error("Error reading file.");
-                alert("No se pudo leer el archivo del logo.");
-                localStorage.setItem(getSettingsKey(), JSON.stringify(settingsToSave));
-                displaySaveFeedback();
-                notifyParentAboutSettingsUpdate();
+            reader.onerror = async () => {
+                console.error('Error reading file.');
+                alert('No se pudo leer el archivo del logo.');
+                await saveToFirestore();
             };
             reader.readAsDataURL(file);
         } else {
-            const existingSettings = JSON.parse(localStorage.getItem(getSettingsKey()) || '{}');
-            settingsToSave.restaurantLogoUrl = existingSettings.restaurantLogoUrl || '';
-            localStorage.setItem(getSettingsKey(), JSON.stringify(settingsToSave));
-            displaySaveFeedback();
-            notifyParentAboutSettingsUpdate();
+            try {
+                const docSnap = await getDoc(restaurantRef);
+                const existingSettings = docSnap.exists() ? (docSnap.data().settings || {}) : {};
+                settingsToSave.restaurantLogoUrl = existingSettings.restaurantLogoUrl || '';
+            } catch (error) {
+                console.error('Error fetching existing settings:', error);
+            }
+            await saveToFirestore();
         }
     });
 

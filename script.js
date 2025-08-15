@@ -749,9 +749,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     const openEditOrderModal = async (orderId) => {
-        editingOrderId = orderId;
+        editingOrderId = parseInt(orderId, 10);
         const history = await loadOrderHistory();
-        const orderToEdit = history.find(order => order.id === orderId);
+        const orderToEdit = history.find(order => order.id === editingOrderId);
 
         if (!orderToEdit) {
             console.error('Order not found for editing:', orderId);
@@ -772,7 +772,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         editOrderItemsListPlatos.innerHTML = '';
         editOrderItemsListBebidas.innerHTML = '';
         editOrderItemsListPostres.innerHTML = '';
-        const menuItems = loadMenu();
+        const menuItems = await loadMenu();
         const currencySymbol = appSettings.currencySymbol || '$';
 
         menuItems.forEach(menuItem => {

@@ -242,13 +242,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const restaurantRef = doc(db, 'restaurants', currentUser.id);
                 const docSnap = await getDoc(restaurantRef);
                 appSettings = docSnap.exists() ? (docSnap.data().settings || {}) : {};
-                localStorage.setItem(getSettingsKey(), JSON.stringify(appSettings));
             } catch (error) {
                 console.error('Error loading app settings:', error);
             }
         }
         currencyDisplaySpan.textContent = appSettings.currencySymbol || '$';
         floatingCurrencyDisplay.textContent = appSettings.currencySymbol || '$';
+        if (gainNode) {
+            gainNode.gain.value = parseFloat(appSettings.appVolume !== undefined ? appSettings.appVolume : 1);
+        }
     };
 
     const defaultMenuItems = [

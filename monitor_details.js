@@ -32,7 +32,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     let orderHistory = [];
 
     const { db } = await import('./firebase-init.js');
-    const { collection, onSnapshot, query, where, getDocs, doc, updateDoc } = await import('https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js');
+    const { collection, onSnapshot, query, where, getDocs, doc, updateDoc, getDoc } = await import('https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js');
 
     // Security check function
     const checkSecurityAccess = () => {
@@ -189,6 +189,19 @@ document.addEventListener('DOMContentLoaded', async () => {
         return settings ? JSON.parse(settings) : {};
     };
 
+    const getRestaurantVolume = async () => {
+        if (!currentRestaurantId) return 1;
+        try {
+            const restaurantRef = doc(db, 'restaurants', currentRestaurantId);
+            const docSnap = await getDoc(restaurantRef);
+            const settings = docSnap.exists() ? (docSnap.data().settings || {}) : {};
+            return settings.appVolume !== undefined ? parseFloat(settings.appVolume) : 1;
+        } catch (error) {
+            console.error('Error fetching volume:', error);
+            return 1;
+        }
+    };
+
     // Function to update restaurant name and logo on the monitor
     const updateHeader = () => {
         const settings = loadAppSettings();
@@ -226,7 +239,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const audioContext = new (window.AudioContext || window.webkitAudioContext)();
                     const gainNode = audioContext.createGain();
                     gainNode.connect(audioContext.destination);
-                    const savedVolume = parseFloat(localStorage.getItem(`restaurant_${currentRestaurantId}_appVolume`) || '1');
+                    const savedVolume = await getRestaurantVolume();
                     gainNode.gain.value = savedVolume;
 
                     const response = await fetch('/ready_sound.mp3');

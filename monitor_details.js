@@ -163,7 +163,19 @@ document.addEventListener('DOMContentLoaded', async () => {
             ordersRef = query(ordersRef, where('restaurantId', '==', restaurantId));
         }
         unsubscribeOrders = onSnapshot(ordersRef, (snapshot) => {
-            orderHistory = snapshot.docs.map(doc => doc.data());
+            snapshot.docChanges().forEach(change => {
+                const data = change.doc.data();
+                if (change.type === 'added') {
+                    orderHistory.push(data);
+                } else if (change.type === 'modified') {
+                    const index = orderHistory.findIndex(o => o.id === data.id);
+                    if (index !== -1) {
+                        orderHistory[index] = data;
+                    }
+                } else if (change.type === 'removed') {
+                    orderHistory = orderHistory.filter(o => o.id !== data.id);
+                }
+            });
             renderDetailMonitorView();
         });
     };
@@ -201,13 +213,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         const existing = orderHistory.find(o => o.id === parseInt(orderId, 10));
         const oldStatus = existing ? existing.status : null;
 
-        const snapshot = await getDocs(collection(db, 'orders'));
-        let targetDoc = null;
-        snapshot.forEach(docSnap => {
-            if (docSnap.data().id === parseInt(orderId, 10)) {
-                targetDoc = docSnap;
-            }
-        });
+        const ordersRef = collection(db, 'orders');
+        const q = query(ordersRef, where('id', '==', parseInt(orderId, 10)), where('restaurantId', '==', currentRestaurantId));
+        const snapshot = await getDocs(q);
+        const targetDoc = snapshot.docs[0];
 
         if (targetDoc) {
             await updateDoc(doc(db, 'orders', targetDoc.id), { status: newStatus });

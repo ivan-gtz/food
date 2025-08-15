@@ -31,7 +31,19 @@ document.addEventListener('DOMContentLoaded', async () => {
             ordersRef = query(ordersRef, where('restaurantId', '==', currentUser.id));
         }
         unsubscribeOrders = onSnapshot(ordersRef, (snapshot) => {
-            orderHistory = snapshot.docs.map(doc => doc.data());
+            snapshot.docChanges().forEach(change => {
+                const data = change.doc.data();
+                if (change.type === 'added') {
+                    orderHistory.push(data);
+                } else if (change.type === 'modified') {
+                    const index = orderHistory.findIndex(o => o.id === data.id);
+                    if (index !== -1) {
+                        orderHistory[index] = data;
+                    }
+                } else if (change.type === 'removed') {
+                    orderHistory = orderHistory.filter(o => o.id !== data.id);
+                }
+            });
             renderMonitorView();
         });
     };

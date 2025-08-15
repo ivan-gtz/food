@@ -1,4 +1,4 @@
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     const monitorListDiv = document.getElementById('monitor-list');
     const restaurantNameElement = document.getElementById('restaurant-name');
     const restaurantLogoElement = document.getElementById('restaurant-logo');
@@ -10,6 +10,10 @@ document.addEventListener('DOMContentLoaded', () => {
     let trackedTickets = new Set();
 
     let currentUser = null; // Variable to store current user
+    let orderHistory = []; // Orders fetched from Firestore
+
+    const { db } = await import('./firebase-init.js');
+    const { collection, onSnapshot, query, where } = await import('https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js');
 
     // Function to get the current user from localStorage
     const getCurrentUser = () => {
@@ -17,26 +21,19 @@ document.addEventListener('DOMContentLoaded', () => {
         return user ? JSON.parse(user) : null;
     };
 
-    // Helper to get restaurant-specific storage key
-    const getStorageKey = (key) => {
-        if (currentUser && currentUser.role === 'restaurant' && currentUser.id) {
-            return `${currentUser.id}_${key}`;
-        } else if (currentUser && currentUser.role === 'admin') {
-            return `admin_default_${key}`; // Admin uses a default set of data
+    // Listen for order updates in Firestore
+    let unsubscribeOrders = null;
+    const listenToOrders = () => {
+        if (!currentUser) return;
+        if (unsubscribeOrders) unsubscribeOrders();
+        let ordersRef = collection(db, 'orders');
+        if (currentUser.role === 'restaurant') {
+            ordersRef = query(ordersRef, where('restaurantId', '==', currentUser.id));
         }
-        // If no user or unrecognized role, fall back to a generic key, though this case should ideally be prevented
-        console.warn("Attempting to access storage without a valid user context. Data might not be isolated.");
-        return key; 
-    };
-
-    // Function to load order history from localStorage
-    const loadOrderHistory = () => {
-        if (!currentUser) {
-            console.error("Cannot load order history: No user logged in.");
-            return [];
-        }
-        const history = localStorage.getItem(getStorageKey('orderHistory'));
-        return history ? JSON.parse(history) : [];
+        unsubscribeOrders = onSnapshot(ordersRef, (snapshot) => {
+            orderHistory = snapshot.docs.map(doc => doc.data());
+            renderMonitorView();
+        });
     };
 
     // Function to load settings (restaurant name and logo) from localStorage
@@ -209,7 +206,7 @@ document.addEventListener('DOMContentLoaded', () => {
         trackedTicketsDisplay.classList.remove('hidden');
         trackedTicketsList.innerHTML = '';
 
-        const history = loadOrderHistory();
+        const history = orderHistory;
         
         Array.from(trackedTickets).forEach(ticketNumber => {
             const order = history.find(o => o.id === ticketNumber);
@@ -234,7 +231,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        const history = loadOrderHistory();
+        const history = orderHistory;
         monitorListDiv.innerHTML = ''; // Clear current monitor view
 
         // Filter orders by status
@@ -356,41 +353,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     `;
     document.head.appendChild(style);
-
     // Event listeners
     addTicketBtn.addEventListener('click', addTicket);
 
-    // Initial load of currentUser
+    // Initial load of currentUser and start listening to orders
     currentUser = getCurrentUser();
-
-    // Initial render when the monitor window opens
-    updateHeader(); // Update header first
-    renderMonitorView();
-
-    // Listen for storage events from other windows (e.g., the main page or settings)
-    // This allows the monitor to update automatically when an order status changes or history is reset
-    window.addEventListener('storage', (event) => {
-        // Re-evaluate currentUser on storage event, in case the logged-in user changed in main tab
-        const newCurrentUser = getCurrentUser();
-        // If the current user context changes from what was initially loaded, reload the page
-        // This is crucial for handling user switches (e.g., admin logs in, then restaurant user logs in)
-        if (!currentUser || !newCurrentUser || currentUser.id !== newCurrentUser.id || currentUser.role !== newCurrentUser.role) {
-            location.reload(); // Force a full reload to apply new user context
-            return;
-        }
-
-        // Check if the key that changed is 'orderHistory', 'lastOrderNumber', or 'appSettings'
-        // This relies on the getStorageKey() correctly identifying the current restaurant's data
-        const relevantOrderHistoryKey = getStorageKey('orderHistory');
-        const relevantLastOrderNumberKey = getStorageKey('lastOrderNumber');
-        const relevantAppSettingsKey = currentUser.role === 'restaurant' ? `restaurant_${currentUser.id}_appSettings` : `admin_appSettings`;
-
-        if (event.key === relevantOrderHistoryKey || event.key === relevantLastOrderNumberKey || event.key === 'orderHistoryUpdate') {
-            console.log('Storage event detected for order history, re-rendering monitor.');
-            renderMonitorView(); // Re-render the view with the updated order data
-        } else if (event.key === relevantAppSettingsKey) {
-            console.log('Storage event detected for app settings, updating header.');
-            updateHeader(); // Update restaurant name/logo
-        }
-    });
+    updateHeader();
+    listenToOrders();
 });

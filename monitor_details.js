@@ -1,4 +1,4 @@
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     const detailMonitorListDiv = document.getElementById('detail-monitor-list');
     const restaurantNameElement = document.getElementById('restaurant-name-details');
     const restaurantLogoElement = document.getElementById('restaurant-logo-details');
@@ -29,6 +29,10 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentUser = null;
     let isAuthenticated = false;
     let currentRestaurantId = null;
+    let orderHistory = [];
+
+    const { db } = await import('./firebase-init.js');
+    const { collection, onSnapshot, query, where, getDocs, doc, updateDoc } = await import('https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js');
 
     // Security check function
     const checkSecurityAccess = () => {
@@ -130,27 +134,18 @@ document.addEventListener('DOMContentLoaded', () => {
             monitorDetailsHeader.appendChild(authIndicator);
         }
         
-        // Load settings
-        loadAppSettings();
-        updateHeader();
-        
-        // Immediately render all orders
-        renderDetailMonitorView();
-        
-        // Set up storage listener
-        setupStorageListener();
-    };
+          // Load settings
+          loadAppSettings();
+          updateHeader();
+
+          // Listen to Firestore orders
+          listenToOrders(restaurantId);
+      };
 
     // Function to get the current user from localStorage
     const getCurrentUser = () => {
         const user = localStorage.getItem('currentUser');
         return user ? JSON.parse(user) : null;
-    };
-
-    // Helper to get restaurant-specific storage key
-    const getStorageKey = (key, restId = null) => {
-        const baseKey = restId || currentRestaurantId || localStorage.getItem('monitorDetailsRestaurantId');
-        return `${baseKey}_${key}`;
     };
 
     // Function to load restaurants
@@ -159,12 +154,18 @@ document.addEventListener('DOMContentLoaded', () => {
         return restaurants ? JSON.parse(restaurants) : [];
     };
 
-    // Function to load order history from localStorage
-    const loadOrderHistory = () => {
-        if (!currentRestaurantId) return [];
-        
-        const history = localStorage.getItem(getStorageKey('orderHistory'));
-        return history ? JSON.parse(history) : [];
+    // Firestore real-time listener for orders
+    let unsubscribeOrders = null;
+    const listenToOrders = (restaurantId) => {
+        if (unsubscribeOrders) unsubscribeOrders();
+        let ordersRef = collection(db, 'orders');
+        if (restaurantId) {
+            ordersRef = query(ordersRef, where('restaurantId', '==', restaurantId));
+        }
+        unsubscribeOrders = onSnapshot(ordersRef, (snapshot) => {
+            orderHistory = snapshot.docs.map(doc => doc.data());
+            renderDetailMonitorView();
+        });
     };
 
     // Function to load settings from localStorage
@@ -193,19 +194,23 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // Function to update order status in localStorage and re-render
-    const updateOrderStatus = (orderId, newStatus) => {
+    // Function to update order status in Firestore
+    const updateOrderStatus = async (orderId, newStatus) => {
         if (!currentRestaurantId) return;
 
-        const history = loadOrderHistory();
-        const orderIndex = history.findIndex(order => order.id === parseInt(orderId, 10));
+        const existing = orderHistory.find(o => o.id === parseInt(orderId, 10));
+        const oldStatus = existing ? existing.status : null;
 
-        if (orderIndex > -1) {
-            const oldOrder = history[orderIndex];
-            const oldStatus = oldOrder.status;
-            history[orderIndex].status = newStatus;
-            localStorage.setItem(getStorageKey('orderHistory'), JSON.stringify(history));
-            renderDetailMonitorView();
+        const snapshot = await getDocs(collection(db, 'orders'));
+        let targetDoc = null;
+        snapshot.forEach(docSnap => {
+            if (docSnap.data().id === parseInt(orderId, 10)) {
+                targetDoc = docSnap;
+            }
+        });
+
+        if (targetDoc) {
+            await updateDoc(doc(db, 'orders', targetDoc.id), { status: newStatus });
 
             if (oldStatus !== 'Listo' && newStatus === 'Listo') {
                 try {
@@ -215,16 +220,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     const savedVolume = parseFloat(localStorage.getItem(`restaurant_${currentRestaurantId}_appVolume`) || '1');
                     gainNode.gain.value = savedVolume;
 
-                    fetch('/ready_sound.mp3')
-                        .then(response => response.arrayBuffer())
-                        .then(arrayBuffer => audioContext.decodeAudioData(arrayBuffer))
-                        .then(audioBuffer => {
-                            const source = audioContext.createBufferSource();
-                            source.buffer = audioBuffer;
-                            source.connect(gainNode);
-                            source.start(0);
-                        })
-                        .catch(error => console.error('Error playing sound:', error));
+                    const response = await fetch('/ready_sound.mp3');
+                    const arrayBuffer = await response.arrayBuffer();
+                    const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+                    const source = audioContext.createBufferSource();
+                    source.buffer = audioBuffer;
+                    source.connect(gainNode);
+                    source.start(0);
                 } catch (e) {
                     console.warn('AudioContext not available or active, cannot play sound:', e);
                 }
@@ -236,7 +238,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const renderDetailMonitorView = () => {
         detailMonitorListDiv.innerHTML = '';
 
-        const history = loadOrderHistory();
+        const history = orderHistory;
         
         if (history.length === 0) {
             detailMonitorListDiv.innerHTML = '<p style="color: #6A1B9A; font-weight: bold;">No hay pedidos registrados en el sistema.</p>';
@@ -318,23 +320,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
-    // Setup storage listener for real-time updates
-    const setupStorageListener = () => {
-        window.addEventListener('storage', (event) => {
-            if (!currentRestaurantId) return;
-            
-            const relevantOrderHistoryKey = getStorageKey('orderHistory');
-            const relevantAppSettingsKey = `restaurant_${currentRestaurantId}_appSettings`;
-
-            if (event.key === relevantOrderHistoryKey || event.key === 'orderHistoryUpdate') {
-                console.log('Storage event detected for order history, re-rendering detail monitor.');
-                renderDetailMonitorView();
-            } else if (event.key === relevantAppSettingsKey) {
-                console.log('Storage event detected for app settings, updating detail monitor header.');
-                updateHeader();
-            }
-        });
-    };
 
     // Clear authentication on page load/refresh
     clearAuthentication();

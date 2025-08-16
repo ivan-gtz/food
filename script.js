@@ -1,7 +1,7 @@
 import { db, auth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from './firebase-init.js';
-import { doc, getDoc, collection, getDocs, setDoc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+import { doc, getDoc, collection, getDocs, setDoc, updateDoc, deleteDoc, addDoc, runTransaction, query, where } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     const placeOrderBtn = document.getElementById('place-order-btn');
     const orderResultDiv = document.getElementById('order-result');
     const customerNameInput = document.getElementById('customer-name');
@@ -175,21 +175,28 @@ document.addEventListener('DOMContentLoaded', () => {
         return 'appSettings'; // Default fallback, though should be covered by user login
     };
 
-    const getAudioContext = () => {
+    const getAudioContext = async () => {
         if (!audioContext) {
             audioContext = new (window.AudioContext || window.webkitAudioContext)();
             gainNode = audioContext.createGain();
             gainNode.connect(audioContext.destination);
-            // Load volume specific to the current user
-            // Corrected: Use the same logic for volume key as in settings.js
-            const savedVolume = parseFloat(localStorage.getItem(getSettingsKey().replace('_appSettings', '_appVolume')) || '1'); 
+            let savedVolume = 1;
+            if (currentUser && currentUser.id) {
+                try {
+                    const restaurantRef = doc(db, 'restaurants', currentUser.id);
+                    const docSnap = await getDoc(restaurantRef);
+                    savedVolume = parseFloat(docSnap.exists() ? (docSnap.data().settings?.appVolume ?? 1) : 1);
+                } catch (error) {
+                    console.error('Error loading volume:', error);
+                }
+            }
             gainNode.gain.value = savedVolume;
         }
         return audioContext;
     };
 
     const playSound = async (soundPath) => {
-        const context = getAudioContext();
+        const context = await getAudioContext();
         try {
             const response = await fetch(soundPath);
             const arrayBuffer = await response.arrayBuffer();
@@ -204,7 +211,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    window.addEventListener('message', (event) => {
+    window.addEventListener('message', async (event) => {
         if (event.origin !== window.location.origin) return;
 
         if (event.data && event.data.type === 'volumeChanged') {
@@ -213,7 +220,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 gainNode.gain.value = newVolume;
                 console.log('Volume updated in index.js:', newVolume);
             } else {
-                getAudioContext();
+                await getAudioContext();
                 gainNode.gain.value = newVolume;
                 console.log('AudioContext initialized and volume set:', newVolume);
             }
@@ -226,21 +233,33 @@ document.addEventListener('DOMContentLoaded', () => {
             }, { once: true });
         } else if (event.data && event.data.type === 'settingsUpdated') {
             console.log('Settings updated from iframe. Monitor(s) will refresh via storage event.');
-            loadAppSettings(); // Reload settings in the main app
-            if (currentUser && (currentUser.role === 'restaurant' || currentUser.role === 'admin')) { 
-                renderMainMenu(loadMenu());
+            await loadAppSettings(); // Reload settings in the main app
+            if (currentUser && (currentUser.role === 'restaurant' || currentUser.role === 'admin')) {
+                renderMainMenu(await loadMenu());
                 updateTotalPrice();
-                updateDailySummary();
+                await updateDailySummary();
                 renderTopItemsChart();
                 renderOrderTypeChart(); // Re-render order type chart on settings update
             }
         }
     });
 
-    const loadAppSettings = () => {
-        appSettings = JSON.parse(localStorage.getItem(getSettingsKey()) || '{}');
+    const loadAppSettings = async () => {
+        appSettings = {};
+        if (currentUser && currentUser.id) {
+            try {
+                const restaurantRef = doc(db, 'restaurants', currentUser.id);
+                const docSnap = await getDoc(restaurantRef);
+                appSettings = docSnap.exists() ? (docSnap.data().settings || {}) : {};
+            } catch (error) {
+                console.error('Error loading app settings:', error);
+            }
+        }
         currencyDisplaySpan.textContent = appSettings.currencySymbol || '$';
         floatingCurrencyDisplay.textContent = appSettings.currencySymbol || '$';
+        if (gainNode) {
+            gainNode.gain.value = parseFloat(appSettings.appVolume !== undefined ? appSettings.appVolume : 1);
+        }
     };
 
     const defaultMenuItems = [
@@ -290,6 +309,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const getNextMenuItemId = () => {
         return `item_${Date.now()}`;
     };
+
+    const getMainMenuCheckboxes = () => document.querySelectorAll('#home-section .menu-categories input[type="checkbox"]');
 
     const renderMainMenu = (menu) => {
         mainMenuUlPlatos.innerHTML = '';
@@ -362,7 +383,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         
         // Add checkbox change listeners
-        document.querySelectorAll('.menu-categories input[type="checkbox"]').forEach(checkbox => {
+        getMainMenuCheckboxes().forEach(checkbox => {
             checkbox.addEventListener('change', updateTotalPrice);
         });
 
@@ -370,7 +391,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const updateTotalPrice = () => {
-        const menuItemsCheckboxes = document.querySelectorAll('.menu-categories input[type="checkbox"]');
+        const menuItemsCheckboxes = getMainMenuCheckboxes();
         let total = 0;
         
         menuItemsCheckboxes.forEach(checkbox => {
@@ -530,69 +551,73 @@ document.addEventListener('DOMContentLoaded', () => {
         cancelEditBtn.classList.add('hidden');
     };
 
-    const getNextOrderNumber = () => {
-        let lastOrderNumber = localStorage.getItem(getStorageKey('lastOrderNumber'));
-        let currentNumber = parseInt(lastOrderNumber, 10);
-
-        if (isNaN(currentNumber) || currentNumber < 1) {
-            currentNumber = 0;
-        }
-
-        if (currentNumber >= 9999) {
-            currentNumber = 0;
-        }
-
-        const nextNumber = currentNumber + 1;
-
-        localStorage.setItem(getStorageKey('lastOrderNumber'), nextNumber);
-
+    const getNextOrderNumber = async () => {
+        const counterRef = doc(db, 'counters', 'orderNumber');
+        const nextNumber = await runTransaction(db, async (transaction) => {
+            const counterDoc = await transaction.get(counterRef);
+            let currentNumber = 0;
+            if (counterDoc.exists()) {
+                currentNumber = counterDoc.data().value || 0;
+            }
+            currentNumber = (currentNumber % 9999) + 1;
+            transaction.set(counterRef, { value: currentNumber });
+            return currentNumber;
+        });
         return nextNumber;
     };
 
-    const loadOrderHistory = () => {
-        const history = localStorage.getItem(getStorageKey('orderHistory'));
-        return history ? JSON.parse(history) : [];
+    const loadOrderHistory = async () => {
+        let ordersRef = collection(db, 'orders');
+        if (currentUser && currentUser.role === 'restaurant') {
+            ordersRef = query(ordersRef, where('restaurantId', '==', currentUser.id));
+        }
+        const snapshot = await getDocs(ordersRef);
+        const history = [];
+        snapshot.forEach(docSnap => {
+            history.push(docSnap.data());
+        });
+        return history;
     };
 
-    const saveOrderHistory = (history) => {
-        localStorage.setItem(getStorageKey('orderHistory'), JSON.stringify(history));
+    const addOrderToHistory = async (order) => {
+        await addDoc(collection(db, 'orders'), order);
     };
 
-    const addOrderToHistory = (order) => {
-        const history = loadOrderHistory();
-        history.push(order);
-        saveOrderHistory(history);
-    };
+    const updateOrderStatus = async (orderId, newStatus) => {
+        const idNum = parseInt(orderId, 10);
+        let ordersRef = collection(db, 'orders');
+        let q;
+        if (currentUser && currentUser.role === 'restaurant') {
+            q = query(ordersRef, where('id', '==', idNum), where('restaurantId', '==', currentUser.id));
+        } else {
+            q = query(ordersRef, where('id', '==', idNum));
+        }
+        const snapshot = await getDocs(q);
+        const targetDoc = snapshot.docs[0];
 
-    const updateOrderStatus = (orderId, newStatus) => {
-        const history = loadOrderHistory();
-        const orderIndex = history.findIndex(order => order.id === parseInt(orderId, 10));
-
-        if (orderIndex > -1) {
-            const oldOrder = history[orderIndex];
+        if (targetDoc) {
+            const oldOrder = targetDoc.data();
             const oldStatus = oldOrder.status;
-            history[orderIndex].status = newStatus;
-            saveOrderHistory(history);
-            renderOrderHistory();
+            await updateDoc(doc(db, 'orders', targetDoc.id), { status: newStatus });
             if (oldStatus !== 'Listo' && newStatus === 'Listo') {
                 playSound('/ready_sound.mpeg');
             }
 
             if (newStatus === 'Recibido' && oldStatus !== 'Recibido') {
-                trackSoldItems(history[orderIndex]);
-                updateDailySummary();
+                await trackSoldItems({ ...oldOrder, status: newStatus });
+                await updateDailySummary();
             } else if (oldStatus === 'Recibido' && newStatus !== 'Recibido') {
-                untrackSoldItems(history[orderIndex]);
-                updateDailySummary();
+                await untrackSoldItems(oldOrder);
+                await updateDailySummary();
             }
-            window.localStorage.setItem('orderHistoryUpdate', Date.now()); 
+            await renderOrderHistory();
         } else {
             console.warn('Attempted to update status for non-existent order with ID:', orderId);
         }
     };
 
-    const renderOrderHistory = () => {
-        const history = loadOrderHistory();
+    const renderOrderHistory = async () => {
+        const history = await loadOrderHistory();
         historyListUl.innerHTML = '';
         historyPaginationControlsDiv.innerHTML = '';
 
@@ -637,10 +662,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 statusSelect.appendChild(option);
             });
 
-            statusSelect.addEventListener('change', (event) => {
+            statusSelect.addEventListener('change', async (event) => {
                 const id = event.target.dataset.orderId;
                 const newStatus = event.target.value;
-                updateOrderStatus(id, newStatus);
+                await updateOrderStatus(id, newStatus);
             });
 
             const editButton = document.createElement('button');
@@ -684,9 +709,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const prevButton = document.createElement('button');
             prevButton.textContent = 'Anterior';
             prevButton.disabled = currentPage === 1;
-            prevButton.addEventListener('click', () => {
+            prevButton.addEventListener('click', async () => {
                 currentPage--;
-                renderOrderHistory();
+                await renderOrderHistory();
             });
 
             const pageInfoSpan = document.createElement('span');
@@ -695,9 +720,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const nextButton = document.createElement('button');
             nextButton.textContent = 'Siguiente';
             nextButton.disabled = currentPage === totalPages;
-            nextButton.addEventListener('click', () => {
+            nextButton.addEventListener('click', async () => {
                 currentPage++;
-                renderOrderHistory();
+                await renderOrderHistory();
             });
 
             historyPaginationControlsDiv.appendChild(prevButton);
@@ -705,37 +730,30 @@ document.addEventListener('DOMContentLoaded', () => {
             historyPaginationControlsDiv.appendChild(nextButton);
         }
 
-        window.addEventListener('storage', (event) => {
-            const relevantOrderHistoryKey = getStorageKey('orderHistory');
-            const relevantLastOrderNumberKey = getStorageKey('lastOrderNumber');
+        window.addEventListener('storage', async (event) => {
             const relevantAppSettingsKey = getSettingsKey();
 
-            if (event.key === relevantOrderHistoryKey || event.key === relevantLastOrderNumberKey || event.key === 'orderHistoryUpdate') {
-                console.log('Storage event detected for order history, re-rendering monitor.');
-                if (currentUser && (currentUser.role === 'restaurant' || currentUser.role === 'admin')) {
-                    renderOrderHistory();
-                }
-            } else if (event.key === relevantAppSettingsKey) {
+            if (event.key === relevantAppSettingsKey) {
                 console.log('Settings updated from iframe. Monitor(s) will refresh via storage event.');
-                loadAppSettings();
-                if (currentUser && (currentUser.role === 'restaurant' || currentUser.role === 'admin')) { 
-                    renderMainMenu(loadMenu());
+                await loadAppSettings();
+                if (currentUser && (currentUser.role === 'restaurant' || currentUser.role === 'admin')) {
+                    renderMainMenu(await loadMenu());
                     updateTotalPrice();
-                    updateDailySummary();
+                    await updateDailySummary();
                 }
             } else if (event.key === 'currentUser' && currentUser) {
                 const newCurrentUser = JSON.parse(event.newValue);
                 if (!newCurrentUser || newCurrentUser.id !== currentUser.id) {
-                    location.reload(); 
+                    location.reload();
                 }
             }
         });
     };
 
-    const openEditOrderModal = (orderId) => {
-        editingOrderId = orderId;
-        const history = loadOrderHistory();
-        const orderToEdit = history.find(order => order.id === orderId);
+    const openEditOrderModal = async (orderId) => {
+        editingOrderId = parseInt(orderId, 10);
+        const history = await loadOrderHistory();
+        const orderToEdit = history.find(order => order.id === editingOrderId);
 
         if (!orderToEdit) {
             console.error('Order not found for editing:', orderId);
@@ -756,7 +774,7 @@ document.addEventListener('DOMContentLoaded', () => {
         editOrderItemsListPlatos.innerHTML = '';
         editOrderItemsListBebidas.innerHTML = '';
         editOrderItemsListPostres.innerHTML = '';
-        const menuItems = loadMenu();
+        const menuItems = await loadMenu();
         const currencySymbol = appSettings.currencySymbol || '$';
 
         menuItems.forEach(menuItem => {
@@ -838,8 +856,8 @@ document.addEventListener('DOMContentLoaded', () => {
         editOrderTotalPriceSpan.textContent = total.toFixed(2);
     };
 
-    saveEditedOrderBtn.addEventListener('click', () => {
-        const history = loadOrderHistory();
+    saveEditedOrderBtn.addEventListener('click', async () => {
+        const history = await loadOrderHistory();
         const orderIndex = history.findIndex(order => order.id === editingOrderId);
 
         if (orderIndex === -1) {
@@ -893,35 +911,46 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         if (oldOrder.status === 'Recibido' && updatedOrder.status !== 'Recibido') {
-            untrackSoldItems(oldOrder);
-            updateDailySummary();
+            await untrackSoldItems(oldOrder);
+            await updateDailySummary();
         } else if (oldOrder.status !== 'Recibido' && updatedOrder.status === 'Recibido') {
-            trackSoldItems(updatedOrder);
-            updateDailySummary();
+            await trackSoldItems(updatedOrder);
+            await updateDailySummary();
         } else if (oldOrder.status === 'Recibido' && updatedOrder.status === 'Recibido') {
             const oldItemNames = new Set(oldOrder.items.map(item => typeof item === 'object' ? item.name : item));
             const newItemNames = new Set(updatedOrder.items.map(item => item.name));
 
-            oldItemNames.forEach(name => {
+            for (const name of oldItemNames) {
                 if (!newItemNames.has(name)) {
-                    untrackSoldItems({ items: [{ name: name }] });
+                    await untrackSoldItems({ items: [{ name }] });
                 }
-            });
-            newItemNames.forEach(name => {
+            }
+            for (const name of newItemNames) {
                 if (!oldItemNames.has(name)) {
-                    trackSoldItems({ items: [{ name: name }] });
+                    await trackSoldItems({ items: [{ name }] });
                 }
-            });
-            updateDailySummary();
+            }
+            await updateDailySummary();
         }
 
-        history[orderIndex] = updatedOrder;
-        saveOrderHistory(history);
-        
-        renderOrderHistory();
-        
-        renderTopItemsChart();
-        renderOrderTypeChart();
+        let ordersRef = collection(db, 'orders');
+        let q;
+        if (currentUser && currentUser.role === 'restaurant') {
+            q = query(ordersRef, where('id', '==', editingOrderId), where('restaurantId', '==', currentUser.id));
+        } else {
+            q = query(ordersRef, where('id', '==', editingOrderId));
+        }
+        const snapshot = await getDocs(q);
+        const targetDoc = snapshot.docs[0];
+
+        if (targetDoc) {
+            await updateDoc(doc(db, 'orders', targetDoc.id), updatedOrder);
+        }
+
+        await renderOrderHistory();
+
+        await renderTopItemsChart();
+        await renderOrderTypeChart();
 
         editOrderMessage.textContent = 'Pedido actualizado con éxito!';
         editOrderMessage.classList.remove('hidden');
@@ -953,7 +982,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     const generateInvoice = (order) => {
-        const appSettings = JSON.parse(localStorage.getItem(getSettingsKey()) || '{}');
         const restaurantName = appSettings.restaurantName || 'Mi Restaurante';
         const restaurantLogoUrl = appSettings.restaurantLogoUrl || '';
         const currencySymbol = appSettings.currencySymbol || '$';
@@ -1110,25 +1138,38 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     };
 
-    const loadDailySummary = () => {
-        const summary = localStorage.getItem(getStorageKey('dailySummary'));
+    const loadDailySummary = async () => {
         const today = new Date().toDateString();
-        if (summary) {
-            const parsedSummary = JSON.parse(summary);
-            if (parsedSummary.date === today) {
-                return parsedSummary;
+        if (currentUser && currentUser.id) {
+            try {
+                const summaryRef = doc(db, 'restaurants', currentUser.id, 'analytics', 'dailySummary');
+                const docSnap = await getDoc(summaryRef);
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    if (data.date === today) {
+                        return data;
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading daily summary:', error);
             }
         }
         return { date: today, totalOrders: 0, totalRevenue: 0, extraRevenue: 0 };
     };
 
-    const saveDailySummary = (summary) => {
-        localStorage.setItem(getStorageKey('dailySummary'), JSON.stringify(summary));
+    const saveDailySummary = async (summary) => {
+        if (!currentUser || !currentUser.id) return;
+        const summaryRef = doc(db, 'restaurants', currentUser.id, 'analytics', 'dailySummary');
+        try {
+            await setDoc(summaryRef, summary);
+        } catch (error) {
+            console.error('Error saving daily summary:', error);
+        }
     };
 
-    const updateDailySummary = () => {
-        let summary = loadDailySummary();
-        const history = loadOrderHistory();
+    const updateDailySummary = async () => {
+        let summary = await loadDailySummary();
+        const history = await loadOrderHistory();
         const today = new Date().toDateString();
 
         const receivedOrdersToday = history.filter(o => o.status === 'Recibido' && new Date(o.timestamp).toDateString() === today);
@@ -1140,18 +1181,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
         summary.extraRevenue = 0;
 
-        saveDailySummary(summary);
+        await saveDailySummary(summary);
         summaryTotalOrdersSpan.textContent = summary.totalOrders;
         summaryTotalRevenueSpan.textContent = summary.totalRevenue.toFixed(2);
         summaryExtraRevenueSpan.textContent = summary.extraRevenue.toFixed(2);
         summaryCurrencyDisplaySpan.textContent = appSettings.currencySymbol || '$';
     };
 
-    const resetDailySummary = () => {
+    const resetDailySummary = async () => {
         const confirmed = confirm('¿Estás seguro de que quieres reiniciar el resumen del día? Esto borrará los datos de hoy.');
         if (confirmed) {
-            localStorage.removeItem(getStorageKey('dailySummary'));
-            updateDailySummary();
+            if (currentUser && currentUser.id) {
+                try {
+                    await deleteDoc(doc(db, 'restaurants', currentUser.id, 'analytics', 'dailySummary'));
+                } catch (error) {
+                    console.error('Error resetting daily summary:', error);
+                }
+            }
+            await updateDailySummary();
             orderResultDiv.classList.remove('error');
             orderResultDiv.style.color = 'orange';
             orderResultDiv.textContent = 'Resumen del día reiniciado.';
@@ -1197,8 +1244,8 @@ document.addEventListener('DOMContentLoaded', () => {
         doc.save(`${fileName}.pdf`);
     };
 
-    downloadSummaryBtn.addEventListener('click', () => {
-        const summary = loadDailySummary();
+    downloadSummaryBtn.addEventListener('click', async () => {
+        const summary = await loadDailySummary();
         const currencySymbol = appSettings.currencySymbol || '$';
         const contentHtml = `
             <p><strong>Resumen de Pedidos del Día: ${summary.date}</strong></p>
@@ -1208,29 +1255,42 @@ document.addEventListener('DOMContentLoaded', () => {
         generatePdfReport('Resumen del Día', contentHtml, `Resumen_Diario_${new Date().toLocaleDateString('es-ES').replace(/\//g, '-')}`);
     });
 
-    const loadTopItems = () => {
-        const topItems = localStorage.getItem(getStorageKey('topItemsSold'));
-        return topItems ? JSON.parse(topItems) : {};
+    const loadTopItems = async () => {
+        if (!currentUser || !currentUser.id) return {};
+        try {
+            const topItemsRef = doc(db, 'restaurants', currentUser.id, 'analytics', 'topItems');
+            const docSnap = await getDoc(topItemsRef);
+            return docSnap.exists() ? docSnap.data() : {};
+        } catch (error) {
+            console.error('Error loading top items:', error);
+            return {};
+        }
     };
 
-    const saveTopItems = (topItems) => {
-        localStorage.setItem(getStorageKey('topItemsSold'), JSON.stringify(topItems));
+    const saveTopItems = async (topItems) => {
+        if (!currentUser || !currentUser.id) return;
+        const topItemsRef = doc(db, 'restaurants', currentUser.id, 'analytics', 'topItems');
+        try {
+            await setDoc(topItemsRef, topItems);
+        } catch (error) {
+            console.error('Error saving top items:', error);
+        }
     };
 
-    const trackSoldItems = (order) => {
-        let topItems = loadTopItems();
+    const trackSoldItems = async (order) => {
+        let topItems = await loadTopItems();
         order.items.forEach(item => {
             const itemName = typeof item === 'object' ? item.name : item;
             topItems[itemName] = (topItems[itemName] || 0) + 1;
         });
-        saveTopItems(topItems);
+        await saveTopItems(topItems);
         if (!topItemsDiv.classList.contains('hidden')) {
-            renderTopItemsChart();
+            await renderTopItemsChart();
         }
     };
 
-    const untrackSoldItems = (order) => {
-        let topItems = loadTopItems();
+    const untrackSoldItems = async (order) => {
+        let topItems = await loadTopItems();
         order.items.forEach(item => {
             const itemName = typeof item === 'object' ? item.name : item;
             if (topItems[itemName] && topItems[itemName] > 0) {
@@ -1240,14 +1300,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
         });
-        saveTopItems(topItems);
+        await saveTopItems(topItems);
         if (!topItemsDiv.classList.contains('hidden')) {
-            renderTopItemsChart();
+            await renderTopItemsChart();
         }
     };
 
-    const renderTopItemsChart = () => {
-        const history = loadOrderHistory();
+    const renderTopItemsChart = async () => {
+        const history = await loadOrderHistory();
         const currentMenu = loadMenu();
         const currencySymbol = appSettings.currencySymbol || '$';
 
@@ -1350,10 +1410,17 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
-    const resetTopItems = () => {
+    const resetTopItems = async () => {
         const confirmed = confirm('¿Estás seguro de que quieres reiniciar los datos de los artículos vendidos? Esto borrará el historial de popularidad de los artículos.');
         if (confirmed) {
-            renderTopItemsChart(); // Re-render to show updated (or lack of) data
+            if (currentUser && currentUser.id) {
+                try {
+                    await deleteDoc(doc(db, 'restaurants', currentUser.id, 'analytics', 'topItems'));
+                } catch (error) {
+                    console.error('Error resetting top items:', error);
+                }
+            }
+            await renderTopItemsChart(); // Re-render to show updated (or lack of) data
             renderOrderTypeChart(); // Re-render order type chart as well
             orderResultDiv.classList.remove('error');
             orderResultDiv.style.color = 'orange';
@@ -1365,8 +1432,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    placeOrderBtn.addEventListener('click', () => {
-        const menuItemsCheckboxes = document.querySelectorAll('.menu-categories input[type="checkbox"]');
+    placeOrderBtn.addEventListener('click', async () => {
+        const menuItemsCheckboxes = getMainMenuCheckboxes();
         const selectedItems = [];
         
         menuItemsCheckboxes.forEach(checkbox => {
@@ -1410,7 +1477,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const newOrderTotalPrice = selectedItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
         const newOrder = {
-            id: getNextOrderNumber(),
+            id: await getNextOrderNumber(),
             name: customerName,
             items: selectedItems,
             notes: orderNotes,
@@ -1418,10 +1485,11 @@ document.addEventListener('DOMContentLoaded', () => {
             extraPayment: null,
             timestamp: Date.now(),
             status: "Preparando",
-            orderType: orderType
+            orderType: orderType,
+            restaurantId: currentUser ? currentUser.id : null
         };
 
-        addOrderToHistory(newOrder);
+        await addOrderToHistory(newOrder);
         lastPlacedOrder = newOrder;
 
         orderResultDiv.textContent = `Pedido Realizado para ${customerName}. Número de seguimiento: #${newOrder.id}`;
@@ -1446,7 +1514,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (!orderHistoryDiv.classList.contains('hidden')) {
             currentPage = 1;
-            renderOrderHistory();
+            await renderOrderHistory();
         }
     });
 
@@ -1482,7 +1550,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Update calculate button click handler
     calculateBtn.addEventListener('click', () => {
-        const menuItemsCheckboxes = document.querySelectorAll('.menu-categories input[type="checkbox"]');
+        const menuItemsCheckboxes = getMainMenuCheckboxes();
         const selectedItems = [];
         
         menuItemsCheckboxes.forEach(checkbox => {
@@ -1767,7 +1835,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 cancelEditing();
                 break;
             case 'daily-summary':
-                updateDailySummary();
+                await updateDailySummary();
                 break;
             case 'top-items':
                 renderTopItemsChart();
@@ -1860,15 +1928,22 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    resetHistoryBtn.addEventListener('click', () => {
+    resetHistoryBtn.addEventListener('click', async () => {
         const confirmed = confirm('¿Estás seguro de que quieres restablecer todo el historial de pedidos? Esta acción no se puede deshacer.');
 
         if (confirmed) {
-            localStorage.removeItem(getStorageKey('orderHistory'));
-            localStorage.removeItem(getStorageKey('lastOrderNumber'));
-            localStorage.removeItem(getStorageKey('dailySummary'));
-            localStorage.removeItem(getStorageKey('topItemsSold'));
-            localStorage.removeItem(getStorageKey('appSettings')); // Clear settings for the specific restaurant/admin
+            let ordersRef = collection(db, 'orders');
+            if (currentUser && currentUser.role === 'restaurant') {
+                ordersRef = query(ordersRef, where('restaurantId', '==', currentUser.id));
+            }
+            const ordersSnapshot = await getDocs(ordersRef);
+            const deletions = ordersSnapshot.docs.map(d => deleteDoc(doc(db, 'orders', d.id)));
+            await Promise.all(deletions);
+            await setDoc(doc(db, 'counters', 'orderNumber'), { value: 0 });
+            if (currentUser && currentUser.id) {
+                await deleteDoc(doc(db, 'restaurants', currentUser.id, 'analytics', 'dailySummary'));
+                await deleteDoc(doc(db, 'restaurants', currentUser.id, 'analytics', 'topItems'));
+            }
 
             if (!orderHistoryDiv.classList.contains('hidden')) {
                 historyListUl.innerHTML = '<li>Historial de pedidos restablecido.</li>';
@@ -1880,9 +1955,9 @@ document.addEventListener('DOMContentLoaded', () => {
             orderResultDiv.style.color = 'orange';
             orderResultDiv.textContent = 'Historial de pedidos y contador restablecidos.';
 
-            updateDailySummary();
-            renderTopItemsChart();
-            loadAppSettings(); // Reload settings as they might have been cleared
+            await updateDailySummary();
+            await renderTopItemsChart();
+            await loadAppSettings(); // Reload settings as they might have been cleared
         } else {
             orderResultDiv.classList.remove('error');
             orderResultDiv.style.color = '#333';
@@ -1916,11 +1991,11 @@ document.addEventListener('DOMContentLoaded', () => {
             loginModalOverlay.classList.add('hidden');
 
             // Cargar datos específicos del usuario/restaurante
-            loadAppSettings();
+            await loadAppSettings();
             renderMainMenu(await loadMenu());
             updateTotalPrice();
-            updateDailySummary();
-            renderTopItemsChart();
+            await updateDailySummary();
+            await renderTopItemsChart();
 
             if (user.role === 'admin') {
                 await showSection('restaurant-management-section');
@@ -2310,7 +2385,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Always load and render the menu regardless of user state
-    loadAppSettings(); // Load settings
+    await loadAppSettings(); // Load settings
     const initialMenu = loadMenu();
     renderMainMenu(initialMenu);
     updateTotalPrice();
@@ -2349,8 +2424,8 @@ document.addEventListener('DOMContentLoaded', () => {
     })();
 
     // New: Function to render Order Type Distribution Chart
-    const renderOrderTypeChart = () => {
-        const history = loadOrderHistory();
+    const renderOrderTypeChart = async () => {
+        const history = await loadOrderHistory();
         let dineInCount = 0;
         let takeawayCount = 0;
 
@@ -2439,9 +2514,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
-    downloadTopItemsBtn.addEventListener('click', () => {
+    downloadTopItemsBtn.addEventListener('click', async () => {
         const topItemsData = {}; // Re-calculate based on today's orders
-        const history = loadOrderHistory();
+        const history = await loadOrderHistory();
         const currentMenu = loadMenu();
         const currencySymbol = appSettings.currencySymbol || '$';
 
@@ -2577,8 +2652,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // New: Download History Button Event Listener
-    downloadHistoryBtn.addEventListener('click', () => {
-        const history = loadOrderHistory();
+    downloadHistoryBtn.addEventListener('click', async () => {
+        const history = await loadOrderHistory();
         const currencySymbol = appSettings.currencySymbol || '$';
         const currentMenu = loadMenu(); // Needed to get all item names for 'top items'
 
@@ -2653,7 +2728,7 @@ document.addEventListener('DOMContentLoaded', () => {
         doc.text('Resumen General', 10, yOffset);
         yOffset += 5;
 
-        const summary = loadDailySummary(); // Reuse daily summary logic for overall revenue
+        const summary = await loadDailySummary(); // Reuse daily summary logic for overall revenue
         const totalOverallRevenue = history.reduce((sum, order) => {
             return sum + (order.totalPrice + (order.extraPayment ? order.extraPayment.amount : 0));
         }, 0);

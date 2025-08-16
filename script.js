@@ -310,7 +310,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         return `item_${Date.now()}`;
     };
 
-    const getMainMenuCheckboxes = () => document.querySelectorAll('#home-section .menu-categories input[type="checkbox"]');
+    const getMainMenuCheckboxes = () => Array.from(document.querySelectorAll('#home-section .menu-categories input[type="checkbox"]'));
 
     const renderMainMenu = (menu) => {
         mainMenuUlPlatos.innerHTML = '';

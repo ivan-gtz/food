@@ -1627,8 +1627,8 @@ h2 {
 
 .password-toggle {
     position: absolute;
-    right: 12px; /* Adjust as needed to align with input */
-    top: 50%;
+    right: auto !important;
+    left: calc(100% - 60px) !important; /* 40px = ancho del input + padding */    top: 50%;
     transform: translateY(-50%);
     cursor: pointer;
     color: #888;
@@ -1643,6 +1643,13 @@ h2 {
     box-shadow: none; /* No shadow */
     transition: color 0.2s ease;
 }
+
+@media (max-width: 768px) {
+    .password-toggle {
+      left: calc(100% - 2.5em) !important; /* Reduce el espacio en móviles */
+    }
+  }
+  
 
 .password-toggle:hover {
     color: #555; /* Darker on hover */

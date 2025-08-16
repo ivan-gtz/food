@@ -240,7 +240,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const savedVolume = await getRestaurantVolume();
                     gainNode.gain.value = savedVolume;
 
-                    const response = await fetch('/ready_sound.mp3');
+                    const response = await fetch('/ready_sound.mpeg');
                     const arrayBuffer = await response.arrayBuffer();
                     const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
                     const source = audioContext.createBufferSource();

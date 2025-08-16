@@ -91,7 +91,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // New: Play festive notification sound
     const playNotificationSound = () => {
-        const audio = new Audio('/ready_sound.mp3');
+        const audio = new Audio('/ready_sound.mpeg');
         audio.volume = 1.0;
         audio.play().catch(e => {
             console.log('Error playing notification sound:', e);

@@ -86,6 +86,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const navRestaurantManagement = document.getElementById('nav-restaurant-management');
     const restaurantIdInput = document.getElementById('restaurant-id-input');
     const restaurantNameManagementInput = document.getElementById('restaurant-name-management-input');
+    const restaurantEmailInput = document.getElementById('restaurant-email-input');
+    const restaurantPasswordInput = document.getElementById('restaurant-password-input');
     const addUpdateRestaurantBtn = document.getElementById('add-update-restaurant-btn');
     const cancelEditRestaurantBtn = document.getElementById('cancel-edit-restaurant-btn');
     const restaurantListManagementDiv = document.getElementById('restaurant-list-management');
@@ -2267,10 +2269,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     const addUpdateRestaurant = async () => {
         const restaurantId = editingRestaurantId || restaurantIdInput.value.trim();
         const restaurantName = restaurantNameManagementInput.value.trim();
+        const email = restaurantEmailInput.value.trim();
+        const password = restaurantPasswordInput.value.trim();
         const startDate = startDateInput.value;
         const endDate = endDateInput.value;
 
-        if (!restaurantId || !restaurantName || !startDate || !endDate) {
+        const isEditing = Boolean(editingRestaurantId);
+
+        if (!restaurantId || !restaurantName || !startDate || !endDate || (!isEditing && (!email || !password))) {
             orderResultDiv.textContent = 'Todos los campos son obligatorios.';
             orderResultDiv.style.color = 'orange';
             return;
@@ -2279,32 +2285,35 @@ document.addEventListener('DOMContentLoaded', async () => {
         const restaurantRef = doc(db, "restaurants", restaurantId);
 
         try {
-            const dataToSave = {
-                id: restaurantId,
-                name: restaurantName,
-                startDate: new Date(startDate),
-                endDate: new Date(endDate),
-            };
-
-            if (editingRestaurantId) {
-                // Modo Edición: Solo actualiza los campos, no sobreescribe todo el documento
-                await updateDoc(restaurantRef, dataToSave);
-                alert('Restaurante actualizado correctamente'); // <-- ALERTA AÑADIDA
-            } else {
-                // Modo Creación: Establece los datos iniciales
-                dataToSave.active = true;
-                dataToSave.menuItems = [];
-                dataToSave.settings = {
-                    restaurantName: restaurantName,
-                    restaurantLogoUrl: "",
-                    currencySymbol: "$",
-                    volume: 1
+            if (isEditing) {
+                const dataToSave = {
+                    id: restaurantId,
+                    name: restaurantName,
+                    startDate: new Date(startDate),
+                    endDate: new Date(endDate),
                 };
-                await setDoc(restaurantRef, dataToSave);
-                alert(`Recuerda crear el usuario para ${restaurantName} en Firebase Authentication y vincularlo en la colección 'users'.`);
+                await updateDoc(restaurantRef, dataToSave);
+            } else {
+                const response = await fetch('https://us-central1-fastfoodvis.cloudfunctions.net/createRestaurantAdmin', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email,
+                        password,
+                        username: restaurantName,
+                        restaurantId,
+                        restaurantName,
+                        startDate,
+                        endDate
+                    })
+                });
+                const result = await response.json();
+                if (!response.ok) {
+                    throw new Error(result.error || 'Error creating restaurant');
+                }
             }
 
-            orderResultDiv.textContent = `Restaurante "${restaurantName}" ${editingRestaurantId ? 'actualizado' : 'añadido'}.`;
+            orderResultDiv.textContent = `Restaurante "${restaurantName}" ${isEditing ? 'actualizado' : 'añadido'}.`;
             orderResultDiv.style.color = 'green';
 
             renderRestaurantManagement();
@@ -2327,7 +2336,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             restaurantNameManagementInput.value = restaurant.name;
             startDateInput.value = new Date(restaurant.startDate.seconds * 1000).toISOString().split('T')[0];
             endDateInput.value = new Date(restaurant.endDate.seconds * 1000).toISOString().split('T')[0];
-            
+
+            restaurantEmailInput.value = '';
+            restaurantPasswordInput.value = '';
+            restaurantEmailInput.disabled = true;
+            restaurantPasswordInput.disabled = true;
+
             addUpdateRestaurantBtn.innerHTML = '<i class="fas fa-save"></i> Actualizar Restaurante';
             cancelEditRestaurantBtn.classList.remove('hidden');
             restaurantIdInput.disabled = true;
@@ -2362,9 +2376,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         restaurantNameManagementInput.value = '';
         startDateInput.value = '';
         endDateInput.value = '';
+        restaurantEmailInput.value = '';
+        restaurantPasswordInput.value = '';
         addUpdateRestaurantBtn.innerHTML = '<i class="fas fa-plus-circle"></i> Añadir Restaurante';
         cancelEditRestaurantBtn.classList.add('hidden');
         restaurantIdInput.disabled = false;
+        restaurantEmailInput.disabled = false;
+        restaurantPasswordInput.disabled = false;
         orderResultDiv.textContent = ''; // Limpiar mensajes de resultado
     };
 
@@ -2410,9 +2428,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Password visibility toggle for restaurant management
     (function() {
-        const restaurantPasswordInput = document.getElementById('restaurant-password-input');
-        const toggleRestaurantPassword = document.getElementById('toggle-restaurant-password');
-
         if (restaurantPasswordInput && toggleRestaurantPassword) {
             toggleRestaurantPassword.addEventListener('click', () => {
                 const type = restaurantPasswordInput.getAttribute('type') === 'password' ? 'text' : 'password';

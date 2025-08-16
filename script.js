@@ -1308,7 +1308,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const renderTopItemsChart = async () => {
         const history = await loadOrderHistory();
-        const currentMenu = loadMenu();
+        const currentMenu = await loadMenu();
         const currencySymbol = appSettings.currencySymbol || '$';
 
         // Calculate aggregated quantities for each item based on today's "Recibido" orders
@@ -2378,7 +2378,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     // Ensure menu is populated with default items if empty
     if (currentUser && (currentUser.role === 'restaurant' || currentUser.role === 'admin')) {
-        const currentMenu = loadMenu();
+        const currentMenu = await loadMenu();
         if (!currentMenu || currentMenu.length === 0) {
             saveMenu(defaultMenuItems);
         }
@@ -2386,7 +2386,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Always load and render the menu regardless of user state
     await loadAppSettings(); // Load settings
-    const initialMenu = loadMenu();
+    const initialMenu = await loadMenu();
     renderMainMenu(initialMenu);
     updateTotalPrice();
 
@@ -2517,7 +2517,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     downloadTopItemsBtn.addEventListener('click', async () => {
         const topItemsData = {}; // Re-calculate based on today's orders
         const history = await loadOrderHistory();
-        const currentMenu = loadMenu();
+        const currentMenu = await loadMenu();
         const currencySymbol = appSettings.currencySymbol || '$';
 
         // Re-calculate aggregated quantities for each item based on today's "Recibido" orders
@@ -2655,7 +2655,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     downloadHistoryBtn.addEventListener('click', async () => {
         const history = await loadOrderHistory();
         const currencySymbol = appSettings.currencySymbol || '$';
-        const currentMenu = loadMenu(); // Needed to get all item names for 'top items'
+        const currentMenu = await loadMenu(); // Needed to get all item names for 'top items'
 
         const doc = new jsPDF();
         let yOffset = 20;

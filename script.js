@@ -235,7 +235,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             console.log('Settings updated from iframe. Monitor(s) will refresh via storage event.');
             await loadAppSettings(); // Reload settings in the main app
             if (currentUser && (currentUser.role === 'restaurant' || currentUser.role === 'admin')) {
-                renderMainMenu(loadMenu());
+                renderMainMenu(await loadMenu());
                 updateTotalPrice();
                 await updateDailySummary();
                 renderTopItemsChart();
@@ -310,6 +310,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         return `item_${Date.now()}`;
     };
 
+    const getMainMenuCheckboxes = () => document.querySelectorAll('#home-section .menu-categories input[type="checkbox"]');
+
     const renderMainMenu = (menu) => {
         mainMenuUlPlatos.innerHTML = '';
         mainMenuUlBebidas.innerHTML = '';
@@ -381,7 +383,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
         
         // Add checkbox change listeners
-        document.querySelectorAll('.menu-categories input[type="checkbox"]').forEach(checkbox => {
+        getMainMenuCheckboxes().forEach(checkbox => {
             checkbox.addEventListener('change', updateTotalPrice);
         });
 
@@ -389,7 +391,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     const updateTotalPrice = () => {
-        const menuItemsCheckboxes = document.querySelectorAll('.menu-categories input[type="checkbox"]');
+        const menuItemsCheckboxes = getMainMenuCheckboxes();
         let total = 0;
         
         menuItemsCheckboxes.forEach(checkbox => {
@@ -735,7 +737,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 console.log('Settings updated from iframe. Monitor(s) will refresh via storage event.');
                 await loadAppSettings();
                 if (currentUser && (currentUser.role === 'restaurant' || currentUser.role === 'admin')) {
-                    renderMainMenu(loadMenu());
+                    renderMainMenu(await loadMenu());
                     updateTotalPrice();
                     await updateDailySummary();
                 }
@@ -1431,7 +1433,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     placeOrderBtn.addEventListener('click', async () => {
-        const menuItemsCheckboxes = document.querySelectorAll('.menu-categories input[type="checkbox"]');
+        const menuItemsCheckboxes = getMainMenuCheckboxes();
         const selectedItems = [];
         
         menuItemsCheckboxes.forEach(checkbox => {
@@ -1548,7 +1550,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Update calculate button click handler
     calculateBtn.addEventListener('click', () => {
-        const menuItemsCheckboxes = document.querySelectorAll('.menu-categories input[type="checkbox"]');
+        const menuItemsCheckboxes = getMainMenuCheckboxes();
         const selectedItems = [];
         
         menuItemsCheckboxes.forEach(checkbox => {

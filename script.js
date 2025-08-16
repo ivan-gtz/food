@@ -1308,7 +1308,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const renderTopItemsChart = async () => {
         const history = await loadOrderHistory();
-        const currentMenu = await loadMenu();
+        const currentMenu = await loadMenu(); // Load menu asynchronously
         const currencySymbol = appSettings.currencySymbol || '$';
 
         // Calculate aggregated quantities for each item based on today's "Recibido" orders

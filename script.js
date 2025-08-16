@@ -777,54 +777,49 @@ document.addEventListener('DOMContentLoaded', async () => {
         const menuItems = await loadMenu();
         const currencySymbol = appSettings.currencySymbol || '$';
 
-        menuItems.forEach(menuItem => {
+        orderToEdit.items.forEach(orderItem => {
+            const menuItem = menuItems.find(mi =>
+                typeof orderItem === 'object'
+                    ? mi.id === orderItem.id
+                    : mi.name === orderItem
+            ) || (typeof orderItem === 'object' ? orderItem : null);
+
+            const itemId = menuItem?.id || (typeof orderItem === 'object' ? orderItem.id : orderItem);
+            const itemName = menuItem?.name || (typeof orderItem === 'object' ? orderItem.name : orderItem);
+            const itemPrice = menuItem?.price || (typeof orderItem === 'object' ? orderItem.price : 0);
+            const itemType = menuItem?.type || (typeof orderItem === 'object' ? orderItem.type : 'dish');
+            const itemQuantity = typeof orderItem === 'object' && orderItem.quantity !== undefined ? orderItem.quantity : 1;
+
             const li = document.createElement('li');
             const checkbox = document.createElement('input');
             checkbox.type = 'checkbox';
-            checkbox.id = `edit-item-${menuItem.id}`;
-            checkbox.value = menuItem.name;
-            checkbox.dataset.price = menuItem.price;
-            checkbox.dataset.id = menuItem.id;
-            checkbox.dataset.type = menuItem.type; 
-
-            const isSelected = orderToEdit.items.some(item => 
-                typeof item === 'object' ? item.id === menuItem.id : item === menuItem.name
-            );
-            if (isSelected) {
-                checkbox.checked = true;
-            }
+            checkbox.id = `edit-item-${itemId}`;
+            checkbox.value = itemName;
+            checkbox.dataset.price = itemPrice;
+            checkbox.dataset.id = itemId;
+            checkbox.dataset.type = itemType;
+            checkbox.checked = true;
 
             const label = document.createElement('label');
-            label.htmlFor = `edit-item-${menuItem.id}`;
-            label.textContent = `${menuItem.name} (${menuItem.price.toFixed(2)} ${currencySymbol})`;
+            label.htmlFor = `edit-item-${itemId}`;
+            label.textContent = `${itemName} (${itemPrice.toFixed(2)} ${currencySymbol})`;
 
-            // Create quantity input for edit mode
             const quantityInput = document.createElement('input');
             quantityInput.type = 'number';
             quantityInput.classList.add('edit-item-quantity');
             quantityInput.min = '1';
             quantityInput.max = '99';
-            quantityInput.value = '1'; // Default, will be updated below
-
-            // Find the original quantity from the order
-            const originalItem = orderToEdit.items.find(item => 
-                typeof item === 'object' ? item.id === menuItem.id : item === menuItem.name
-            );
-            if (originalItem && typeof originalItem === 'object' && originalItem.quantity !== undefined) {
-                quantityInput.value = originalItem.quantity;
-            } else if (originalItem && originalItem !== undefined) {
-                quantityInput.value = 1;
-            }
+            quantityInput.value = itemQuantity;
 
             li.appendChild(checkbox);
             li.appendChild(label);
             li.appendChild(quantityInput);
 
-            if (menuItem.type === 'dish') {
+            if (itemType === 'dish') {
                 editOrderItemsListPlatos.appendChild(li);
-            } else if (menuItem.type === 'drink') {
+            } else if (itemType === 'drink') {
                 editOrderItemsListBebidas.appendChild(li);
-            } else if (menuItem.type === 'dessert') {
+            } else if (itemType === 'dessert') {
                 editOrderItemsListPostres.appendChild(li);
             }
 

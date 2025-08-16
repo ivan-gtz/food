@@ -2424,7 +2424,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     })();
 
     // New: Function to render Order Type Distribution Chart
-    const renderOrderTypeChart = async () => {
+    async function renderOrderTypeChart() {
         const history = await loadOrderHistory();
         let dineInCount = 0;
         let takeawayCount = 0;
@@ -2512,7 +2512,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             }
         });
-    };
+    }
 
     downloadTopItemsBtn.addEventListener('click', async () => {
         const topItemsData = {}; // Re-calculate based on today's orders

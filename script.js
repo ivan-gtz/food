@@ -1548,6 +1548,235 @@ document.addEventListener('DOMContentLoaded', async () => {
         }, 3000);
     };
 
+    // Styles for calculation modal and toast notifications
+    const style = document.createElement('style');
+    style.textContent = `
+        .calculation-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1003;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .calculation-modal-content {
+            background: linear-gradient(135deg, #FFD700 0%, #FF8C00 100%);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+            max-width: 450px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            border: 3px solid #D32F2F;
+            animation: slideUp 0.3s ease;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #FF8C00;
+            padding-bottom: 10px;
+        }
+
+        .modal-header h3 {
+            font-family: 'Fredoka One', cursive;
+            color: #D32F2F;
+            font-size: 1.5em;
+            margin: 0;
+        }
+
+        .close-modal {
+            background: none;
+            border: none;
+            font-size: 1.8em;
+            color: #D32F2F;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .close-modal:hover {
+            transform: rotate(90deg);
+        }
+
+        .calculation-summary {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .summary-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .calculation-items {
+            max-height: 200px;
+            overflow-y: auto;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .calc-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #e0e0e0;
+            font-size: 0.9em;
+        }
+
+        .calc-item:last-child {
+            border-bottom: none;
+        }
+
+        .calculation-total {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            background: linear-gradient(135deg, #4CAF50 0%, #8BC34A 100%);
+            color: white;
+            border-radius: 10px;
+            font-size: 1.2em;
+            font-weight: 700;
+            margin-top: 15px;
+        }
+
+        .payment-section {
+            margin-top: 20px;
+        }
+
+        .payment-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .cash-input {
+            width: 120px;
+            padding: 8px;
+            border: 2px solid #FF8C00;
+            border-radius: 8px;
+            font-size: 1em;
+            text-align: right;
+        }
+
+        .change-row {
+            background: linear-gradient(135deg, #2196F3 0%, #64B5F6 100%);
+            color: white;
+            padding: 10px;
+            border-radius: 8px;
+        }
+
+        .modal-place-order-btn {
+            background: linear-gradient(135deg, #4CAF50 0%, #8BC34A 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-right: 10px;
+        }
+
+        .modal-place-order-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(76, 175, 80, 0.4);
+        }
+
+        .close-btn {
+            background: linear-gradient(135deg, #D32F2F 0%, #B71C1C 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: block;
+            margin: 0 auto;
+        }
+
+        .close-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(211, 47, 47, 0.4);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #4CAF50 0%, #8BC34A 100%);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 50px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            font-size: 1.1em;
+            font-weight: bold;
+            z-index: 1000;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .toast.show {
+            transform: translateX(0);
+        }
+
+        .toast-info {
+            background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
+        }
+
+        .toast i {
+            font-size: 1.2em;
+        }
+
+        @media (max-width: 768px) {
+            .toast {
+                bottom: 15px;
+                right: 15px;
+                left: 15px;
+                text-align: center;
+                border-radius: 15px;
+            }
+        }
+    `;
+    document.head.appendChild(style);
+
     // Update calculate button click handler
     calculateBtn.addEventListener('click', () => {
         const menuItemsCheckboxes = getMainMenuCheckboxes();
@@ -1618,235 +1847,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             </div>
         `;
 
-        // Add styles
-        const style = document.createElement('style');
-        style.textContent = `
-            .calculation-modal-overlay {
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: rgba(0, 0, 0, 0.7);
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                z-index: 1003;
-                animation: fadeIn 0.3s ease;
-            }
-
-            .calculation-modal-content {
-                background: linear-gradient(135deg, #FFD700 0%, #FF8C00 100%);
-                border-radius: 20px;
-                padding: 30px;
-                box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
-                max-width: 450px;
-                width: 90%;
-                max-height: 80vh;
-                overflow-y: auto;
-                border: 3px solid #D32F2F;
-                animation: slideUp 0.3s ease;
-            }
-
-            .modal-header {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                margin-bottom: 20px;
-                border-bottom: 2px solid #FF8C00;
-                padding-bottom: 10px;
-            }
-
-            .modal-header h3 {
-                font-family: 'Fredoka One', cursive;
-                color: #D32F2F;
-                font-size: 1.5em;
-                margin: 0;
-            }
-
-            .close-modal {
-                background: none;
-                border: none;
-                font-size: 1.8em;
-                color: #D32F2F;
-                cursor: pointer;
-                transition: transform 0.2s ease;
-            }
-
-            .close-modal:hover {
-                transform: rotate(90deg);
-            }
-
-            .calculation-summary {
-                background: rgba(255, 255, 255, 0.9);
-                border-radius: 15px;
-                padding: 20px;
-                margin-bottom: 20px;
-            }
-
-            .summary-item {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                margin-bottom: 15px;
-                font-weight: 600;
-                color: #333;
-            }
-
-            .calculation-items {
-                max-height: 200px;
-                overflow-y: auto;
-                margin-bottom: 15px;
-                padding: 10px;
-                background: #f8f9fa;
-                border-radius: 10px;
-            }
-
-            .calc-item {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                padding: 8px 0;
-                border-bottom: 1px solid #e0e0e0;
-                font-size: 0.9em;
-            }
-
-            .calc-item:last-child {
-                border-bottom: none;
-            }
-
-            .calculation-total {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                padding: 15px;
-                background: linear-gradient(135deg, #4CAF50 0%, #8BC34A 100%);
-                color: white;
-                border-radius: 10px;
-                font-size: 1.2em;
-                font-weight: 700;
-                margin-top: 15px;
-            }
-
-            .payment-section {
-                margin-top: 20px;
-            }
-
-            .payment-row {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                margin-bottom: 10px;
-                font-weight: 600;
-                color: #333;
-            }
-
-            .cash-input {
-                width: 120px;
-                padding: 8px;
-                border: 2px solid #FF8C00;
-                border-radius: 8px;
-                font-size: 1em;
-                text-align: right;
-            }
-
-            .change-row {
-                background: linear-gradient(135deg, #2196F3 0%, #64B5F6 100%);
-                color: white;
-                padding: 10px;
-                border-radius: 8px;
-            }
-
-            .modal-place-order-btn {
-                background: linear-gradient(135deg, #4CAF50 0%, #8BC34A 100%);
-                color: white;
-                border: none;
-                padding: 12px 30px;
-                border-radius: 25px;
-                font-size: 1.1em;
-                font-weight: 600;
-                cursor: pointer;
-                transition: all 0.3s ease;
-                margin-right: 10px;
-            }
-
-            .modal-place-order-btn:hover {
-                transform: translateY(-2px);
-                box-shadow: 0 5px 15px rgba(76, 175, 80, 0.4);
-            }
-
-            .close-btn {
-                background: linear-gradient(135deg, #D32F2F 0%, #B71C1C 100%);
-                color: white;
-                border: none;
-                padding: 12px 30px;
-                border-radius: 25px;
-                font-size: 1.1em;
-                font-weight: 600;
-                cursor: pointer;
-                transition: all 0.3s ease;
-                display: block;
-                margin: 0 auto;
-            }
-
-            .close-btn:hover {
-                transform: translateY(-2px);
-                box-shadow: 0 5px 15px rgba(211, 47, 47, 0.4);
-            }
-
-            @keyframes fadeIn {
-                from { opacity: 0; }
-                to { opacity: 1; }
-            }
-
-            @keyframes slideUp {
-                from { transform: translateY(50px); opacity: 0; }
-                to { transform: translateY(0); opacity: 1; }
-            }
-
-            .toast {
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                background: linear-gradient(135deg, #4CAF50 0%, #8BC34A 100%);
-                color: white;
-                padding: 15px 25px;
-                border-radius: 50px;
-                box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-                font-size: 1.1em;
-                font-weight: bold;
-                z-index: 1000;
-                transform: translateX(400px);
-                transition: transform 0.3s ease;
-                display: flex;
-                align-items: center;
-                gap: 10px;
-            }
-
-            .toast.show {
-                transform: translateX(0);
-            }
-
-            .toast-info {
-                background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
-            }
-
-            .toast i {
-                font-size: 1.2em;
-            }
-
-            @media (max-width: 768px) {
-                .toast {
-                    bottom: 15px;
-                    right: 15px;
-                    left: 15px;
-                    text-align: center;
-                    border-radius: 15px;
-                }
-            }
-        `;
-        
-        document.head.appendChild(style);
         document.body.appendChild(modal);
 
         // Add event listeners

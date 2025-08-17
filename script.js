@@ -2100,6 +2100,27 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             if (userDocSnap.exists()) {
                 const userData = userDocSnap.data();
+                // Verificar si la suscripción del restaurante está activa
+                if (userData.role === 'restaurant' && userData.id) {
+                    try {
+                        const restaurantRef = doc(db, 'restaurants', userData.id);
+                        const restaurantSnap = await getDoc(restaurantRef);
+                        if (!restaurantSnap.exists() || !restaurantSnap.data().active) {
+                            loginMessage.textContent = 'Suscripción inactiva. Contacta al administrador.';
+                            loginMessage.classList.remove('success');
+                            loginMessage.classList.add('error');
+                            await signOut(auth);
+                            return;
+                        }
+                    } catch (error) {
+                        console.error('Error verificando suscripción del restaurante:', error);
+                        loginMessage.textContent = 'Error verificando suscripción. Intenta de nuevo.';
+                        loginMessage.classList.remove('success');
+                        loginMessage.classList.add('error');
+                        await signOut(auth);
+                        return;
+                    }
+                }
                 // Combinar datos de Auth y Firestore
                 const userProfile = {
                     uid: user.uid,

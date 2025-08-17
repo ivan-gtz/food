@@ -761,7 +761,13 @@ h2 {
     background: linear-gradient(to right, #00BCD4, #00ACC1);
 }
 
+.button-container {
+    text-align: center;
+    margin-top: 20px;
+}
+
 #place-order-btn,
+#calculate-btn,
 #reset-history-btn,
 #reset-daily-summary-btn,
 #add-update-item-btn,
@@ -790,6 +796,7 @@ h2 {
 }
 
 #place-order-btn i,
+#calculate-btn i,
 #reset-history-btn i,
 #reset-daily-summary-btn i,
 #add-update-item-btn i,
@@ -1628,7 +1635,7 @@ h2 {
 .password-toggle {
     position: absolute;
     right: auto !important;
-    left: calc(100% - 60px) !important; /* 40px = ancho del input + padding */    top: 50%;
+    left: calc(100% - 40px) !important; /* 40px = ancho del input + padding */    top: 50%;
     transform: translateY(-50%);
     cursor: pointer;
     color: #888;
@@ -1646,7 +1653,7 @@ h2 {
 
 @media (max-width: 768px) {
     .password-toggle {
-      left: calc(100% - 2.5em) !important; /* Reduce el espacio en móviles */
+      left: calc(100% - 1.5em) !important; /* Reduce el espacio en móviles */
     }
   }
   

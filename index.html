@@ -100,16 +100,15 @@
                     <textarea id="order-notes-input" placeholder="Ej: Sin cebolla, con extra de queso..."></textarea>
                 </div>
 
-                <button id="calculate-btn"><i class="fas fa-calculator"></i> Calcular</button>
-                
-                <button id="place-order-btn"><i class="fas fa-utensils"></i> Realizar Pedido</button>
+                <div class="button-container">
+                    <button id="calculate-btn"><i class="fas fa-calculator"></i> Calcular</button>
+                    <button id="place-order-btn"><i class="fas fa-utensils"></i> Realizar Pedido</button>
+                    <button id="print-invoice-btn" class="hidden"><i class="fas fa-receipt"></i> Imprimir Factura</button>
+                </div>
 
                 <div id="order-result">
                     <!-- The order number and confirmation will be displayed here -->
                 </div>
-
-                <!-- New: Print Invoice Button -->
-                <button id="print-invoice-btn" class="hidden"><i class="fas fa-receipt"></i> Imprimir Factura</button>
             </div>
 
             <!-- Section for Order History -->

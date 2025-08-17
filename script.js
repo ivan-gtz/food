@@ -1599,9 +1599,20 @@ document.addEventListener('DOMContentLoaded', async () => {
                             <span>Total:</span>
                             <strong>${total.toFixed(2)} ${appSettings.currencySymbol || '$'}</strong>
                         </div>
+                        <div class="payment-section">
+                            <div class="payment-row">
+                                <label for="cash-received">Efectivo recibido:</label>
+                                <input type="number" id="cash-received" class="cash-input" min="0" step="0.01">
+                            </div>
+                            <div class="payment-row change-row">
+                                <span>Cambio a devolver:</span>
+                                <strong id="change-amount">0.00 ${appSettings.currencySymbol || '$'}</strong>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">
+                    <button class="modal-place-order-btn">Realizar Pedido</button>
                     <button class="close-btn">Aceptar</button>
                 </div>
             </div>
@@ -1717,6 +1728,53 @@ document.addEventListener('DOMContentLoaded', async () => {
                 margin-top: 15px;
             }
 
+            .payment-section {
+                margin-top: 20px;
+            }
+
+            .payment-row {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 10px;
+                font-weight: 600;
+                color: #333;
+            }
+
+            .cash-input {
+                width: 120px;
+                padding: 8px;
+                border: 2px solid #FF8C00;
+                border-radius: 8px;
+                font-size: 1em;
+                text-align: right;
+            }
+
+            .change-row {
+                background: linear-gradient(135deg, #2196F3 0%, #64B5F6 100%);
+                color: white;
+                padding: 10px;
+                border-radius: 8px;
+            }
+
+            .modal-place-order-btn {
+                background: linear-gradient(135deg, #4CAF50 0%, #8BC34A 100%);
+                color: white;
+                border: none;
+                padding: 12px 30px;
+                border-radius: 25px;
+                font-size: 1.1em;
+                font-weight: 600;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                margin-right: 10px;
+            }
+
+            .modal-place-order-btn:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 5px 15px rgba(76, 175, 80, 0.4);
+            }
+
             .close-btn {
                 background: linear-gradient(135deg, #D32F2F 0%, #B71C1C 100%);
                 color: white;
@@ -1792,6 +1850,21 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.body.appendChild(modal);
 
         // Add event listeners
+        const cashInput = modal.querySelector('#cash-received');
+        const changeAmount = modal.querySelector('#change-amount');
+        if (cashInput && changeAmount) {
+            cashInput.addEventListener('input', () => {
+                const cash = parseFloat(cashInput.value) || 0;
+                const change = cash - total;
+                changeAmount.textContent = `${change >= 0 ? change.toFixed(2) : '0.00'} ${appSettings.currencySymbol || '$'}`;
+            });
+        }
+
+        modal.querySelector('.modal-place-order-btn').addEventListener('click', () => {
+            modal.remove();
+            placeOrderBtn.click();
+        });
+
         modal.querySelector('.close-modal').addEventListener('click', () => modal.remove());
         modal.querySelector('.close-btn').addEventListener('click', () => modal.remove());
         modal.addEventListener('click', (e) => {

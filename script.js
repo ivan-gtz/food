@@ -1145,10 +1145,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const summaryRef = doc(db, 'restaurants', currentUser.id, 'analytics', 'dailySummary');
                 const docSnap = await getDoc(summaryRef);
                 if (docSnap.exists()) {
-                    const data = docSnap.data();
-                    if (data.date === today) {
-                        return data;
-                    }
+                    return docSnap.data();
                 }
             } catch (error) {
                 console.error('Error loading daily summary:', error);
@@ -1170,12 +1167,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     const updateDailySummary = async () => {
         let summary = await loadDailySummary();
         const history = await loadOrderHistory();
-        const today = new Date().toDateString();
+        const startDate = new Date(summary.date);
 
-        const receivedOrdersToday = history.filter(o => o.status === 'Recibido' && new Date(o.timestamp).toDateString() === today);
+        const receivedOrdersSinceReset = history.filter(o => {
+            return o.status === 'Recibido' && new Date(o.timestamp) >= startDate;
+        });
 
-        summary.totalOrders = receivedOrdersToday.length;
-        summary.totalRevenue = receivedOrdersToday.reduce((sum, o) => {
+        summary.totalOrders = receivedOrdersSinceReset.length;
+        summary.totalRevenue = receivedOrdersSinceReset.reduce((sum, o) => {
             return sum + o.totalPrice;
         }, 0);
 

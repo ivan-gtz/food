@@ -551,8 +551,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         cancelEditBtn.classList.add('hidden');
     };
 
-    const getNextOrderNumber = async () => {
-        const counterRef = doc(db, 'counters', 'orderNumber');
+    const getNextOrderNumber = async (restaurantId) => {
+        const counterRef = doc(db, 'restaurants', restaurantId, 'counters', 'orderNumber');
         const nextNumber = await runTransaction(db, async (transaction) => {
             const counterDoc = await transaction.get(counterRef);
             let currentNumber = 0;
@@ -1476,7 +1476,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const newOrderTotalPrice = selectedItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
         const newOrder = {
-            id: await getNextOrderNumber(),
+            id: await getNextOrderNumber(currentUser.id),
             name: customerName,
             items: selectedItems,
             notes: orderNotes,
@@ -2011,8 +2011,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             const ordersSnapshot = await getDocs(ordersRef);
             const deletions = ordersSnapshot.docs.map(d => deleteDoc(doc(db, 'orders', d.id)));
             await Promise.all(deletions);
-            await setDoc(doc(db, 'counters', 'orderNumber'), { value: 0 });
             if (currentUser && currentUser.id) {
+                await setDoc(doc(db, 'restaurants', currentUser.id, 'counters', 'orderNumber'), { value: 0 });
                 await deleteDoc(doc(db, 'restaurants', currentUser.id, 'analytics', 'dailySummary'));
                 await deleteDoc(doc(db, 'restaurants', currentUser.id, 'analytics', 'topItems'));
             }

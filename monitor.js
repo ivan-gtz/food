@@ -4,6 +4,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     const restaurantLogoElement = document.getElementById('restaurant-logo');
     const monitorTipElement = document.querySelector('.monitor-tip'); // Get the tip element
 
+    const currentRestaurantId = new URLSearchParams(window.location.search).get('rest');
+    if (!currentRestaurantId) {
+        monitorListDiv.innerHTML = '<p style="color: #6A1B9A; font-weight: bold;">Se requiere el parámetro ?rest=ID en la URL.</p>';
+        return;
+    }
+
     // New: Ticket functionality
     const ticketNumberInput = document.getElementById('ticket-number-input');
     const addTicketBtn = document.getElementById('add-ticket-btn');
@@ -17,13 +23,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Listen for order updates in Firestore
     let unsubscribeOrders = null;
-    const listenToOrders = (user) => {
-        if (!user) return;
+    const listenToOrders = (restaurantId) => {
+        if (!restaurantId) return;
         if (unsubscribeOrders) unsubscribeOrders();
         let ordersRef = collection(db, 'orders');
-        if (user.role === 'restaurant') {
-            ordersRef = query(ordersRef, where('restaurantId', '==', user.id));
-        }
+        ordersRef = query(ordersRef, where('restaurantId', '==', restaurantId));
         unsubscribeOrders = onSnapshot(ordersRef, (snapshot) => {
             snapshot.docChanges().forEach(change => {
                 const data = change.doc.data();
@@ -44,14 +48,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Function to load settings (restaurant name and logo) from Firestore
     const loadSettings = async () => {
-        if (!currentUser) {
-            console.error("Cannot load settings: No user logged in.");
+        if (!currentRestaurantId) {
+            console.error("Cannot load settings: No restaurant ID.");
             return {};
         }
         try {
-            const docRef = currentUser.role === 'restaurant'
-                ? doc(db, 'restaurants', currentUser.id)
-                : doc(db, 'users', currentUser.uid);
+            const docRef = doc(db, 'restaurants', currentRestaurantId);
             const docSnap = await getDoc(docRef);
             return docSnap.exists() ? (docSnap.data().settings || {}) : {};
         } catch (e) {
@@ -236,9 +238,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Modified: Enhanced render function to include tracked tickets display
     const renderMonitorView = () => {
-        // Ensure currentUser is set before rendering specific data
-        if (!currentUser) {
-            monitorListDiv.innerHTML = '<p style="color: #6A1B9A; font-weight: bold;">No se ha iniciado sesión.</p>';
+        if (!currentRestaurantId) {
+            monitorListDiv.innerHTML = '<p style="color: #6A1B9A; font-weight: bold;">ID de restaurante no especificado.</p>';
             monitorTipElement.classList.add('hidden');
             return;
         }
@@ -369,23 +370,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     addTicketBtn.addEventListener('click', addTicket);
 
     onAuthStateChanged(auth, async (user) => {
+        currentUser = null;
         if (user) {
             try {
                 const userDoc = await getDoc(doc(db, 'users', user.uid));
                 currentUser = userDoc.exists() ? { uid: user.uid, ...userDoc.data() } : null;
             } catch (e) {
                 console.error('Error fetching user data:', e);
-                currentUser = null;
-            }
-            await updateHeader();
-            listenToOrders(currentUser);
-        } else {
-            currentUser = null;
-            if (unsubscribeOrders) {
-                unsubscribeOrders();
-                unsubscribeOrders = null;
             }
         }
+        await updateHeader();
+        listenToOrders(currentRestaurantId);
         renderMonitorView();
     });
 });

@@ -1949,15 +1949,23 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (sectionId) {
                 showSection(sectionId);
             } else if (link.id === 'nav-monitor') {
-                if (currentUser && (currentUser.role === 'restaurant' || currentUser.role === 'admin')) { 
-                    window.open('monitor.html', '_blank');
+                if (currentUser && (currentUser.role === 'restaurant' || currentUser.role === 'admin')) {
+                    if (currentUser.id) {
+                        window.open(`monitor.html?rest=${currentUser.id}`, '_blank');
+                    } else {
+                        alert('No se encontró el ID del restaurante.');
+                    }
                 } else {
                     alert('Por favor, inicia sesión para acceder al monitor.');
                     openLoginModal();
                 }
             } else if (link.id === 'nav-detail-monitor') {
-                if (currentUser && (currentUser.role === 'restaurant' || currentUser.role === 'admin')) { 
-                    window.open('monitor_details.html', '_blank');
+                if (currentUser && (currentUser.role === 'restaurant' || currentUser.role === 'admin')) {
+                    if (currentUser.id) {
+                        window.open(`monitor_details.html?rest=${currentUser.id}`, '_blank');
+                    } else {
+                        alert('No se encontró el ID del restaurante.');
+                    }
                 } else {
                     alert('Por favor, inicia sesión para acceder al monitor de detalles.');
                     openLoginModal();

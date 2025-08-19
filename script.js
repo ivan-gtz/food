@@ -107,6 +107,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const navMenuManagement = document.getElementById('nav-menu-management');
     const navMonitor = document.getElementById('nav-monitor');
     const navDetailMonitor = document.getElementById('nav-detail-monitor');
+    const copyMonitorLink = document.getElementById('copy-monitor-link');
+    const copyDetailMonitorLink = document.getElementById('copy-detail-monitor-link');
 
     // New: Elements for Order Type Distribution Chart
     const orderTypeChartCanvas = document.getElementById('orderTypeChart');
@@ -141,6 +143,35 @@ document.addEventListener('DOMContentLoaded', async () => {
     // New: Login attempts counter
     let loginAttempts = 0;
     const MAX_LOGIN_ATTEMPTS = 5;
+
+    const setupCopyLink = (iconElement, path) => {
+        iconElement.addEventListener('click', async (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (currentUser && (currentUser.role === 'restaurant' || currentUser.role === 'admin')) {
+                if (currentUser.id) {
+                    const url = `${window.location.origin}/${path}?rest=${currentUser.id}`;
+                    try {
+                        await navigator.clipboard.writeText(url);
+                        iconElement.classList.replace('fa-copy', 'fa-check');
+                        setTimeout(() => {
+                            iconElement.classList.replace('fa-check', 'fa-copy');
+                        }, 1000);
+                    } catch (err) {
+                        console.error('Error al copiar el enlace:', err);
+                    }
+                } else {
+                    alert('No se encontró el ID del restaurante.');
+                }
+            } else {
+                alert('Por favor, inicia sesión para copiar el enlace.');
+                openLoginModal();
+            }
+        });
+    };
+
+    setupCopyLink(copyMonitorLink, 'monitor.html');
+    setupCopyLink(copyDetailMonitorLink, 'monitor_details.html');
 
     const hideSplashScreen = () => {
         splashScreen.classList.add('hidden');

@@ -661,6 +661,45 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
+        const currencySymbol = appSettings.currencySymbol || '$';
+
+        // --- Resumen agrupado por restaurante para administradores ---
+        if (currentUser && currentUser.role === 'admin') {
+            const restaurants = await loadRestaurants();
+            const restaurantMap = {};
+            restaurants.forEach(r => {
+                restaurantMap[r.id] = r.name;
+            });
+
+            const summary = {};
+            history.forEach(order => {
+                const restId = order.restaurantId || 'Desconocido';
+                if (!summary[restId]) {
+                    summary[restId] = { orders: 0, total: 0, dates: new Set() };
+                }
+                summary[restId].orders++;
+                summary[restId].total += order.totalPrice + (order.extraPayment ? order.extraPayment.amount || 0 : 0);
+                if (order.timestamp) {
+                    summary[restId].dates.add(new Date(order.timestamp).toDateString());
+                }
+            });
+
+            Object.entries(summary).forEach(([restId, data]) => {
+                const li = document.createElement('li');
+                const name = restaurantMap[restId] || `Restaurante ${restId}`;
+                const avgPerDay = data.dates.size > 0 ? (data.orders / data.dates.size).toFixed(2) : data.orders.toFixed(2);
+                li.innerHTML = `
+                    <strong>${name}</strong><br>
+                    Pedidos: ${data.orders}<br>
+                    Total ventas: ${data.total.toFixed(2)} ${currencySymbol}<br>
+                    Promedio pedidos por día: ${avgPerDay}
+                `;
+                historyListUl.appendChild(li);
+            });
+
+            return;
+        }
+
         history.sort((a, b) => b.timestamp - a.timestamp);
 
         const totalOrders = history.length;
@@ -674,8 +713,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         const ordersToDisplay = history.slice(startIndex, endIndex).map(order => {
             return { ...order };
         });
-
-        const currencySymbol = appSettings.currencySymbol || '$';
 
         ordersToDisplay.forEach(order => {
             const li = document.createElement('li');

@@ -4,116 +4,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     const restaurantLogoElement = document.getElementById('restaurant-logo-details');
     const monitorDetailsHeader = document.querySelector('.monitor-details-header');
 
-    // New: Security modal elements
-    const securityModal = document.createElement('div');
-    securityModal.id = 'security-modal-overlay';
-    securityModal.className = 'modal-overlay';
-    securityModal.innerHTML = `
-        <div class="modal-content">
-            <h2> Acceso Restringido</h2>
-            <p>Ingresa el ID del restaurante para acceder al Monitor de Detalles</p>
-            <div class="form-group">
-                <input type="text" id="security-restaurant-id" placeholder="Ej: R001" maxlength="10">
-            </div>
-            <button id="security-confirm-btn" class="confirm-button">
-                <i class="fas fa-unlock"></i> Acceder
-            </button>
-            <button id="security-cancel-btn" class="confirm-button" style="background: linear-gradient(135deg, #D32F2F 0%, #B71C1C 100%);">
-                <i class="fas fa-times"></i> Cancelar
-            </button>
-            <p id="security-message" class="modal-message hidden"></p>
-        </div>
-    `;
-    document.body.appendChild(securityModal);
-
-    let currentUser = null;
-    let isAuthenticated = false;
-    let currentRestaurantId = null;
+    const currentRestaurantId = new URLSearchParams(window.location.search).get('rest');
     let orderHistory = [];
 
-    const { db, auth, onAuthStateChanged } = await import('./firebase-init.js');
+    const { db } = await import('./firebase-init.js');
     const { collection, onSnapshot, query, where, getDocs, doc, updateDoc, getDoc } = await import('https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js');
-
-    // Security check function using Firebase Auth
-    const checkSecurityAccess = () => {
-        return new Promise((resolve) => {
-            onAuthStateChanged(auth, async (user) => {
-                if (user) {
-                    try {
-                        const userDoc = await getDoc(doc(db, 'users', user.uid));
-                        currentUser = userDoc.exists() ? { uid: user.uid, ...userDoc.data() } : null;
-                        if (currentUser && currentUser.role === 'restaurant' && currentUser.id) {
-                            isAuthenticated = true;
-                            currentRestaurantId = currentUser.id;
-                            resolve(true);
-                            return;
-                        }
-                    } catch (e) {
-                        console.error('Error fetching user data:', e);
-                    }
-                }
-                resolve(false);
-            });
-        });
-    };
-
-    // Show security modal
-    const showSecurityModal = () => {
-        securityModal.classList.remove('hidden');
-        void securityModal.offsetWidth;
-        securityModal.classList.add('active');
-
-        const securityInput = document.getElementById('security-restaurant-id');
-        const securityConfirm = document.getElementById('security-confirm-btn');
-        const securityCancel = document.getElementById('security-cancel-btn');
-        const securityMessage = document.getElementById('security-message');
-
-        securityInput.focus();
-
-        securityConfirm.onclick = async () => {
-            const restaurantId = securityInput.value.trim().toUpperCase();
-            if (!restaurantId) {
-                securityMessage.textContent = 'Por favor ingresa un ID de restaurante válido';
-                securityMessage.classList.remove('hidden');
-                securityMessage.classList.add('error');
-                return;
-            }
-
-            try {
-                const docSnap = await getDoc(doc(db, 'restaurants', restaurantId));
-                const restaurant = docSnap.exists() ? docSnap.data() : null;
-                if (restaurant && restaurant.active) {
-                    currentRestaurantId = restaurantId;
-                    isAuthenticated = true;
-
-                    securityModal.classList.remove('active');
-                    setTimeout(() => {
-                        securityModal.classList.add('hidden');
-                        initializeApp(restaurantId);
-                    }, 300);
-                } else {
-                    securityMessage.textContent = 'ID de restaurante inválido o restaurante inactivo';
-                    securityMessage.classList.remove('hidden');
-                    securityMessage.classList.add('error');
-                }
-            } catch (e) {
-                console.error('Error verifying restaurant:', e);
-                securityMessage.textContent = 'Error verificando el ID del restaurante';
-                securityMessage.classList.remove('hidden');
-                securityMessage.classList.add('error');
-            }
-        };
-
-        securityCancel.onclick = () => {
-            securityModal.classList.remove('active');
-            setTimeout(() => {
-                securityModal.classList.add('hidden');
-                window.close(); // Close window on cancel
-            }, 300);
-        };
-    };
-
-    // Initialize app after authentication
     const initializeApp = async (restaurantId) => {
         try {
             const docSnap = await getDoc(doc(db, 'restaurants', restaurantId));
@@ -121,7 +16,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const restaurant = docSnap.data();
                 restaurantNameElement.textContent = restaurant.name;
 
-                // Add authenticated indicator
+                // Display restaurant ID indicator
                 const authIndicator = document.createElement('div');
                 authIndicator.style.cssText = `
                     position: absolute;
@@ -341,9 +236,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
 
-    if (await checkSecurityAccess()) {
+    if (currentRestaurantId) {
         initializeApp(currentRestaurantId);
     } else {
-        showSecurityModal();
+        detailMonitorListDiv.innerHTML = '<p style="color: #6A1B9A; font-weight: bold;">No se proporcionó el ID del restaurante en la URL.</p>';
     }
 });

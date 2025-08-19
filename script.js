@@ -552,15 +552,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     const getNextOrderNumber = async (restaurantId) => {
-        const counterRef = doc(db, 'restaurants', restaurantId, 'counters', 'orderNumber');
+        // Maintain a separate order counter for each restaurant in 'counters/{restaurantId}'
+        const counterRef = doc(db, 'counters', restaurantId);
         const nextNumber = await runTransaction(db, async (transaction) => {
             const counterDoc = await transaction.get(counterRef);
             let currentNumber = 0;
             if (counterDoc.exists()) {
-                currentNumber = counterDoc.data().value || 0;
+                currentNumber = counterDoc.data().orderNumber || 0;
             }
             currentNumber = (currentNumber % 9999) + 1;
-            transaction.set(counterRef, { value: currentNumber });
+            transaction.set(counterRef, { orderNumber: currentNumber });
             return currentNumber;
         });
         return nextNumber;
@@ -2012,7 +2013,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const deletions = ordersSnapshot.docs.map(d => deleteDoc(doc(db, 'orders', d.id)));
             await Promise.all(deletions);
             if (currentUser && currentUser.id) {
-                await setDoc(doc(db, 'restaurants', currentUser.id, 'counters', 'orderNumber'), { value: 0 });
+                await setDoc(doc(db, 'counters', currentUser.id), { orderNumber: 0 });
                 await deleteDoc(doc(db, 'restaurants', currentUser.id, 'analytics', 'dailySummary'));
                 await deleteDoc(doc(db, 'restaurants', currentUser.id, 'analytics', 'topItems'));
             }

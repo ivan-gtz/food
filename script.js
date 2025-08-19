@@ -124,9 +124,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     const itemsPerPage = 10;
 
     let lastPlacedOrder = null;
+    let isPlacingOrder = false;
 
     let appSettings = {};
-    let currentUser = null; 
+    let currentUser = null;
 
     let currentOrderTotal = 0;
 
@@ -1433,88 +1434,101 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     placeOrderBtn.addEventListener('click', async () => {
-        const menuItemsCheckboxes = getMainMenuCheckboxes();
-        const selectedItems = [];
-        
-        menuItemsCheckboxes.forEach(checkbox => {
-            if (checkbox.checked) {
-                const quantity = parseInt(document.getElementById(`qty-${checkbox.dataset.id}`)?.value || 1);
-                const basePrice = parseFloat(checkbox.dataset.price);
-                selectedItems.push({
-                    id: checkbox.dataset.id,
-                    name: checkbox.value,
-                    price: basePrice,
-                    type: checkbox.dataset.type,
-                    quantity: quantity,
-                    subtotal: basePrice * quantity
-                });
+        if (isPlacingOrder) return;
+        isPlacingOrder = true;
+        placeOrderBtn.disabled = true;
+        try {
+            const menuItemsCheckboxes = getMainMenuCheckboxes();
+            const selectedItems = [];
+
+            menuItemsCheckboxes.forEach(checkbox => {
+                if (checkbox.checked) {
+                    const quantity = parseInt(document.getElementById(`qty-${checkbox.dataset.id}`)?.value || 1);
+                    const basePrice = parseFloat(checkbox.dataset.price);
+                    selectedItems.push({
+                        id: checkbox.dataset.id,
+                        name: checkbox.value,
+                        price: basePrice,
+                        type: checkbox.dataset.type,
+                        quantity: quantity,
+                        subtotal: basePrice * quantity
+                    });
+                }
+            });
+
+            const customerName = customerNameInput.value.trim();
+            const orderNotes = orderNotesInput.value.trim();
+            const orderType = document.querySelector('input[name="order-type"]:checked').value;
+
+            orderResultDiv.classList.remove('error');
+            orderResultDiv.style.color = '';
+            orderResultDiv.textContent = '';
+            printInvoiceBtn.classList.add('hidden');
+
+            if (customerName === '') {
+                orderResultDiv.textContent = 'Por favor, ingresa tu nombre.';
+                orderResultDiv.classList.add('error');
+                orderResultDiv.style.color = 'orange';
+                return;
             }
-        });
 
-        const customerName = customerNameInput.value.trim();
-        const orderNotes = orderNotesInput.value.trim();
-        const orderType = document.querySelector('input[name="order-type"]:checked').value;
+            if (selectedItems.length === 0) {
+                orderResultDiv.textContent = 'Por favor, selecciona al menos un plato.';
+                orderResultDiv.classList.add('error');
+                orderResultDiv.style.color = 'orange';
+                return;
+            }
 
-        orderResultDiv.classList.remove('error');
-        orderResultDiv.style.color = '';
-        orderResultDiv.textContent = '';
-        printInvoiceBtn.classList.add('hidden');
+            const newOrderTotalPrice = selectedItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
-        if (customerName === '') {
-            orderResultDiv.textContent = 'Por favor, ingresa tu nombre.';
+            const newOrder = {
+                id: await getNextOrderNumber(currentUser.id),
+                name: customerName,
+                items: selectedItems,
+                notes: orderNotes,
+                totalPrice: newOrderTotalPrice,
+                extraPayment: null,
+                timestamp: Date.now(),
+                status: "Preparando",
+                orderType: orderType,
+                restaurantId: currentUser ? currentUser.id : null
+            };
+
+            await addOrderToHistory(newOrder);
+            lastPlacedOrder = newOrder;
+
+            orderResultDiv.textContent = `Pedido Realizado para ${customerName}. Número de seguimiento: #${newOrder.id}`;
+            orderResultDiv.style.color = 'green';
+            printInvoiceBtn.classList.remove('hidden');
+
+            /* Reset quantities to 1 and uncheck all checkboxes */
+            menuItemsCheckboxes.forEach(checkbox => {
+                checkbox.checked = false;
+                const qtyInput = document.getElementById(`qty-${checkbox.dataset.id}`);
+                if (qtyInput) {
+                    qtyInput.value = 1;
+                }
+            });
+
+            customerNameInput.value = '';
+            orderNotesInput.value = '';
+            dineInRadio.checked = true;
+            updateTotalPrice(); /* This will update the display to 0.00 */
+
+            playSound('/order_sound.mp3');
+
+            if (!orderHistoryDiv.classList.contains('hidden')) {
+                currentPage = 1;
+                await renderOrderHistory();
+            }
+        } catch (error) {
+            console.error('Error placing order:', error);
+            orderResultDiv.textContent = 'Error al realizar el pedido.';
             orderResultDiv.classList.add('error');
             orderResultDiv.style.color = 'orange';
-            return;
-        }
-
-        if (selectedItems.length === 0) {
-            orderResultDiv.textContent = 'Por favor, selecciona al menos un plato.';
-            orderResultDiv.classList.add('error');
-            orderResultDiv.style.color = 'orange';
-            return;
-        }
-
-        const newOrderTotalPrice = selectedItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-
-        const newOrder = {
-            id: await getNextOrderNumber(currentUser.id),
-            name: customerName,
-            items: selectedItems,
-            notes: orderNotes,
-            totalPrice: newOrderTotalPrice,
-            extraPayment: null,
-            timestamp: Date.now(),
-            status: "Preparando",
-            orderType: orderType,
-            restaurantId: currentUser ? currentUser.id : null
-        };
-
-        await addOrderToHistory(newOrder);
-        lastPlacedOrder = newOrder;
-
-        orderResultDiv.textContent = `Pedido Realizado para ${customerName}. Número de seguimiento: #${newOrder.id}`;
-        orderResultDiv.style.color = 'green';
-        printInvoiceBtn.classList.remove('hidden');
-
-        /* Reset quantities to 1 and uncheck all checkboxes */
-        menuItemsCheckboxes.forEach(checkbox => {
-            checkbox.checked = false;
-            const qtyInput = document.getElementById(`qty-${checkbox.dataset.id}`);
-            if (qtyInput) {
-                qtyInput.value = 1;
-            }
-        });
-        
-        customerNameInput.value = '';
-        orderNotesInput.value = '';
-        dineInRadio.checked = true;
-        updateTotalPrice(); /* This will update the display to 0.00 */
-
-        playSound('/order_sound.mp3');
-
-        if (!orderHistoryDiv.classList.contains('hidden')) {
-            currentPage = 1;
-            await renderOrderHistory();
+        } finally {
+            isPlacingOrder = false;
+            placeOrderBtn.disabled = false;
         }
     });
 
@@ -1860,7 +1874,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
         }
 
-        modal.querySelector('.modal-place-order-btn').addEventListener('click', () => {
+        const modalPlaceOrderBtn = modal.querySelector('.modal-place-order-btn');
+        modalPlaceOrderBtn.addEventListener('click', () => {
+            if (isPlacingOrder) return;
+            modalPlaceOrderBtn.disabled = true;
             modal.remove();
             placeOrderBtn.click();
         });

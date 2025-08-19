@@ -1339,30 +1339,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     const renderTopItemsChart = async () => {
-        const history = await loadOrderHistory();
         const currentMenu = await loadMenu(); // Load menu asynchronously
-        const currencySymbol = appSettings.currencySymbol || '$';
+        const topItems = await loadTopItems();
 
-        // Calculate aggregated quantities for each item based on today's "Recibido" orders
-        const itemQuantities = {};
-
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-
-        history.forEach(order => {
-            const orderDate = new Date(order.timestamp);
-            if (order.status === 'Recibido' && orderDate.toDateString() === today.toDateString()) {
-                order.items.forEach(item => {
-                    const itemName = typeof item === 'object' ? item.name : item;
-                    const quantity = typeof item === 'object' && item.quantity !== undefined ? item.quantity : 1;
-                    itemQuantities[itemName] = (itemQuantities[itemName] || 0) + quantity;
-                });
-            }
-        });
-
-        // Prepare data for Chart.js
+        // Prepare data for Chart.js using accumulated sold item counts
         const chartLabels = currentMenu.map(item => item.name);
-        const chartData = chartLabels.map(name => itemQuantities[name] || 0);
+        const chartData = chartLabels.map(name => topItems[name] || 0);
 
         if (topItemsChartInstance) {
             topItemsChartInstance.destroy();
@@ -1435,7 +1417,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     },
                     title: {
                         display: true,
-                        text: 'Artículos del Menú Más Populares (Hoy)'
+                        text: 'Artículos del Menú Más Populares'
                     }
                 }
             }
@@ -1456,7 +1438,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             renderOrderTypeChart(); // Re-render order type chart as well
             orderResultDiv.classList.remove('error');
             orderResultDiv.style.color = 'orange';
-            orderResultDiv.textContent = 'Datos de artículos vendidos (para hoy) recalculados.';
+            orderResultDiv.textContent = 'Datos de artículos vendidos reiniciados.';
         } else {
             orderResultDiv.classList.remove('error');
             orderResultDiv.style.color = '#333';
@@ -2665,24 +2647,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     downloadTopItemsBtn.addEventListener('click', async () => {
-        const topItemsData = {}; // Re-calculate based on today's orders
-        const history = await loadOrderHistory();
+        const topItemsData = await loadTopItems(); // Load accumulated sold item counts
         const currentMenu = await loadMenu();
         const currencySymbol = appSettings.currencySymbol || '$';
-
-        // Re-calculate aggregated quantities for each item based on today's "Recibido" orders
-        history.forEach(order => {
-            const orderDate = new Date(order.timestamp);
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            if (order.status === 'Recibido' && orderDate.toDateString() === today.toDateString()) {
-                order.items.forEach(item => {
-                    const itemName = typeof item === 'object' ? item.name : item;
-                    const quantity = typeof item === 'object' && item.quantity !== undefined ? item.quantity : 1;
-                    topItemsData[itemName] = (topItemsData[itemName] || 0) + quantity;
-                });
-            }
-        });
 
         let tableHtml = `
             <style>
@@ -2742,7 +2709,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         let yOffset = 20;
 
         doc.setFontSize(18);
-        doc.text('Reporte de Artículos Más Vendidos (Hoy)', doc.internal.pageSize.getWidth() / 2, yOffset, { align: 'center' });
+        doc.text('Reporte de Artículos Más Vendidos', doc.internal.pageSize.getWidth() / 2, yOffset, { align: 'center' });
         yOffset += 10;
 
         doc.setFontSize(10);

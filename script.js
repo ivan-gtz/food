@@ -143,6 +143,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     let loginAttempts = 0;
     const MAX_LOGIN_ATTEMPTS = 5;
 
+    const parseDateToUTC = (dateString) => {
+        const [year, month, day] = dateString.split('-').map(Number);
+        return new Date(Date.UTC(year, month - 1, day));
+    };
+
     const setupCopyLink = (iconElement, path) => {
         iconElement.addEventListener('click', async (e) => {
             e.preventDefault();
@@ -2396,8 +2401,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             `;
             statusToggle.querySelector('input').addEventListener('change', (e) => toggleRestaurantStatus(e.target.dataset.id, e.target.checked));
 
-            const startDateDisplay = restaurant.startDate ? new Date(restaurant.startDate.seconds * 1000).toLocaleDateString('es-ES') : 'N/A';
-            const endDateDisplay = restaurant.endDate ? new Date(restaurant.endDate.seconds * 1000).toLocaleDateString('es-ES') : 'N/A';
+            const startDateDisplay = restaurant.startDate ? new Date(restaurant.startDate.seconds * 1000).toLocaleDateString('es-ES', { timeZone: 'UTC' }) : 'N/A';
+            const endDateDisplay = restaurant.endDate ? new Date(restaurant.endDate.seconds * 1000).toLocaleDateString('es-ES', { timeZone: 'UTC' }) : 'N/A';
 
             div.innerHTML = `
                 <div class="restaurant-info">
@@ -2457,8 +2462,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             const dataToSave = {
                 id: restaurantId,
                 name: restaurantName,
-                startDate: new Date(startDate),
-                endDate: new Date(endDate),
+                startDate: parseDateToUTC(startDate),
+                endDate: parseDateToUTC(endDate),
             };
 
             if (editingRestaurantId) {

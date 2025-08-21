@@ -13,8 +13,8 @@ const urlsToCache = [
     '/settings.html',
     '/settings.css',
     '/settings.js',
-    '/order_sound.mp3',
-    '/ready_sound.mp3',
+    '/new_sound.mp3',
+    '/new_sound.mp3',
     '/logo de Fasturno.png' // Add your favicon/PWA icon here
 ];
 

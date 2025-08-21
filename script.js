@@ -175,10 +175,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const hideSplashScreen = () => {
         splashScreen.classList.add('hidden');
-        splashScreen.addEventListener('transitionend', () => {
-            splashScreen.style.display = 'none';
-            containerWrapper.classList.remove('hidden');
-        }, { once: true });
+        splashScreen.addEventListener(
+            'transitionend',
+            () => {
+                splashScreen.style.display = 'none';
+                if (currentUser) {
+                    containerWrapper.classList.remove('hidden');
+                }
+            },
+            { once: true }
+        );
     };
 
     // Initialize and hide splash screen based on device
@@ -186,7 +192,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         setTimeout(hideSplashScreen, 3000);
     } else {
         splashScreen.style.display = 'none';
-        containerWrapper.classList.remove('hidden');
+        if (currentUser) {
+            containerWrapper.classList.remove('hidden');
+        }
     }
 
     const getStorageKey = (key) => {

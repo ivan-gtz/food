@@ -143,9 +143,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     let loginAttempts = 0;
     const MAX_LOGIN_ATTEMPTS = 5;
 
-    const parseDateToUTC = (dateString) => {
+    const parseDateToUTC = (dateString, endOfDay = false) => {
         const [year, month, day] = dateString.split('-').map(Number);
-        return new Date(Date.UTC(year, month - 1, day));
+        return endOfDay
+            ? new Date(Date.UTC(year, month - 1, day, 23, 59, 59, 999))
+            : new Date(Date.UTC(year, month - 1, day));
     };
 
     const setupCopyLink = (iconElement, path) => {
@@ -2191,8 +2193,33 @@ document.addEventListener('DOMContentLoaded', async () => {
                     try {
                         const restaurantRef = doc(db, 'restaurants', userData.id);
                         const restaurantSnap = await getDoc(restaurantRef);
-                        if (!restaurantSnap.exists() || !restaurantSnap.data().active) {
+                        if (!restaurantSnap.exists()) {
                             loginMessage.textContent = 'Suscripción inactiva. Contacta al administrador.';
+                            loginMessage.classList.remove('success');
+                            loginMessage.classList.add('error');
+                            await signOut(auth);
+                            return;
+                        }
+                        const restaurantData = restaurantSnap.data();
+                        if (!restaurantData.active) {
+                            loginMessage.textContent = 'Suscripción inactiva. Contacta al administrador.';
+                            loginMessage.classList.remove('success');
+                            loginMessage.classList.add('error');
+                            await signOut(auth);
+                            return;
+                        }
+                        const now = new Date();
+                        const startDate = restaurantData.startDate ? restaurantData.startDate.toDate() : null;
+                        const endDate = restaurantData.endDate ? restaurantData.endDate.toDate() : null;
+                        if (startDate && now < startDate) {
+                            loginMessage.textContent = 'La suscripción aún no está activa.';
+                            loginMessage.classList.remove('success');
+                            loginMessage.classList.add('error');
+                            await signOut(auth);
+                            return;
+                        }
+                        if (endDate && now > endDate) {
+                            loginMessage.textContent = 'La suscripción ha expirado.';
                             loginMessage.classList.remove('success');
                             loginMessage.classList.add('error');
                             await signOut(auth);
@@ -2463,7 +2490,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 id: restaurantId,
                 name: restaurantName,
                 startDate: parseDateToUTC(startDate),
-                endDate: parseDateToUTC(endDate),
+                endDate: parseDateToUTC(endDate, true),
             };
 
             if (editingRestaurantId) {

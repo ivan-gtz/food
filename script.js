@@ -646,7 +646,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const oldStatus = oldOrder.status;
             await updateDoc(doc(db, 'orders', targetDoc.id), { status: newStatus });
             if (oldStatus !== 'Listo' && newStatus === 'Listo') {
-                playSound('/ready_sound.mpeg');
+                playSound('/new_sound.mp3');
             }
 
             if (newStatus === 'Recibido' && oldStatus !== 'Recibido') {
@@ -1041,7 +1041,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         editOrderMessage.classList.add('success');
 
         if (oldOrder.status !== 'Listo' && updatedOrder.status === 'Listo') {
-            playSound('/ready_sound.mpeg');
+            playSound('/new_sound.mp3');
         }
 
         setTimeout(() => {
@@ -1578,7 +1578,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             dineInRadio.checked = true;
             updateTotalPrice(); /* This will update the display to 0.00 */
 
-            playSound('/order_sound.mp3');
+            playSound('/new_sound.mp3');
 
             if (!orderHistoryDiv.classList.contains('hidden')) {
                 currentPage = 1;

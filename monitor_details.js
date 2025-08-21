@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const currentRestaurantId = new URLSearchParams(window.location.search).get('rest');
     let orderHistory = [];
 
-    const { db } = await import('./firebase-init.js');
+    const { db, auth, onAuthStateChanged } = await import('./firebase-init.js');
     const { collection, onSnapshot, query, where, getDocs, doc, updateDoc, getDoc } = await import('https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js');
     const initializeApp = async (restaurantId) => {
         try {
@@ -236,9 +236,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
 
-    if (currentRestaurantId) {
-        initializeApp(currentRestaurantId);
-    } else {
-        detailMonitorListDiv.innerHTML = '<p style="color: #6A1B9A; font-weight: bold;">No se proporcionó el ID del restaurante en la URL.</p>';
-    }
+    onAuthStateChanged(auth, (user) => {
+        if (!user) {
+            window.location.href = 'index.html';
+            return;
+        }
+        if (currentRestaurantId) {
+            initializeApp(currentRestaurantId);
+        } else {
+            detailMonitorListDiv.innerHTML = '<p style="color: #6A1B9A; font-weight: bold;">No se proporcionó el ID del restaurante en la URL.</p>';
+        }
+    });
 });

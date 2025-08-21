@@ -108,7 +108,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const navMonitor = document.getElementById('nav-monitor');
     const navDetailMonitor = document.getElementById('nav-detail-monitor');
     const copyMonitorLink = document.getElementById('copy-monitor-link');
-    const copyDetailMonitorLink = document.getElementById('copy-detail-monitor-link');
 
     // New: Elements for Order Type Distribution Chart
     const orderTypeChartCanvas = document.getElementById('orderTypeChart');
@@ -171,7 +170,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     setupCopyLink(copyMonitorLink, 'monitor.html');
-    setupCopyLink(copyDetailMonitorLink, 'monitor_details.html');
 
     const hideSplashScreen = () => {
         splashScreen.classList.add('hidden');

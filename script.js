@@ -321,19 +321,22 @@ document.addEventListener('DOMContentLoaded', async () => {
         { id: 'item11', name: 'Flan de Caramelo', price: 3.50, type: 'dessert' }
     ];
 
-    const loadMenu = async () => {
-        if (!currentUser || !currentUser.id) return defaultMenuItems;
+    const loadMenu = async (restaurantId) => {
+        restaurantId = restaurantId || (currentUser && currentUser.id);
+        if (!restaurantId) return defaultMenuItems;
 
         try {
-            const restaurantRef = doc(db, "restaurants", currentUser.id);
+            const restaurantRef = doc(db, "restaurants", restaurantId);
             const docSnap = await getDoc(restaurantRef);
 
             if (docSnap.exists() && docSnap.data().menuItems) {
                 // Si el menú existe en Firestore, lo retorna
                 return docSnap.data().menuItems;
             } else {
-                // Si no existe, retorna el menú por defecto y lo guarda en Firestore para futuros usos
-                await saveMenu(defaultMenuItems);
+                // Si no existe y es el restaurante actual, guarda el menú por defecto
+                if (restaurantId === (currentUser && currentUser.id)) {
+                    await saveMenu(defaultMenuItems);
+                }
                 return defaultMenuItems;
             }
         } catch (error) {
@@ -1432,12 +1435,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     const renderTopItemsChart = async () => {
-        const currentMenu = await loadMenu(); // Load menu asynchronously
+        let topItems = {};
+        let chartLabels = [];
+        let currentMenu = [];
 
-        let topItems;
         if (currentUser && currentUser.role === 'admin') {
             const selectedRestaurant = topItemsRestaurantFilter ? topItemsRestaurantFilter.value : 'all';
             if (selectedRestaurant && selectedRestaurant !== 'all') {
+                currentMenu = await loadMenu(selectedRestaurant);
                 try {
                     const topItemsRef = doc(db, 'restaurants', selectedRestaurant, 'analytics', 'topItems');
                     const docSnap = await getDoc(topItemsRef);
@@ -1448,13 +1453,16 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             } else {
                 topItems = await loadTopItemsAllRestaurants();
+                chartLabels = Object.keys(topItems);
             }
         } else {
+            currentMenu = await loadMenu();
             topItems = await loadTopItems();
         }
 
-        // Prepare data for Chart.js using accumulated sold item counts
-        const chartLabels = currentMenu.map(item => item.name);
+        if (chartLabels.length === 0) {
+            chartLabels = currentMenu.map(item => item.name);
+        }
         const chartData = chartLabels.map(name => topItems[name] || 0);
 
         if (topItemsChartInstance) {

@@ -54,6 +54,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const resetTopItemsBtn = document.getElementById('reset-top-items-btn');
     let topItemsChartInstance = null;
     const downloadTopItemsBtn = document.getElementById('download-top-items-btn');
+    const topItemsRestaurantFilter = document.getElementById('top-items-restaurant-filter');
 
     const editOrderModalOverlay = document.getElementById('edit-order-modal-overlay');
     const closeEditOrderModalBtn = document.getElementById('close-edit-order-modal-btn');
@@ -1370,6 +1371,27 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     };
 
+    const populateTopItemsFilter = async () => {
+        if (!topItemsRestaurantFilter) return;
+        topItemsRestaurantFilter.innerHTML = '<option value="all">Todos</option>';
+        if (currentUser && currentUser.role === 'admin') {
+            try {
+                const restaurants = await loadRestaurants();
+                restaurants.forEach(restaurant => {
+                    const opt = document.createElement('option');
+                    opt.value = restaurant.docId;
+                    opt.textContent = restaurant.name;
+                    topItemsRestaurantFilter.appendChild(opt);
+                });
+                topItemsRestaurantFilter.classList.remove('hidden');
+            } catch (error) {
+                console.error('Error populating restaurant filter:', error);
+            }
+        } else {
+            topItemsRestaurantFilter.classList.add('hidden');
+        }
+    };
+
     const saveTopItems = async (topItems) => {
         if (!currentUser || !currentUser.id) return;
         const topItemsRef = doc(db, 'restaurants', currentUser.id, 'analytics', 'topItems');
@@ -1411,9 +1433,25 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const renderTopItemsChart = async () => {
         const currentMenu = await loadMenu(); // Load menu asynchronously
-        const topItems = currentUser && currentUser.role === 'admin'
-            ? await loadTopItemsAllRestaurants()
-            : await loadTopItems();
+
+        let topItems;
+        if (currentUser && currentUser.role === 'admin') {
+            const selectedRestaurant = topItemsRestaurantFilter ? topItemsRestaurantFilter.value : 'all';
+            if (selectedRestaurant && selectedRestaurant !== 'all') {
+                try {
+                    const topItemsRef = doc(db, 'restaurants', selectedRestaurant, 'analytics', 'topItems');
+                    const docSnap = await getDoc(topItemsRef);
+                    topItems = docSnap.exists() ? docSnap.data() : {};
+                } catch (error) {
+                    console.error('Error loading top items for restaurant:', error);
+                    topItems = {};
+                }
+            } else {
+                topItems = await loadTopItemsAllRestaurants();
+            }
+        } else {
+            topItems = await loadTopItems();
+        }
 
         // Prepare data for Chart.js using accumulated sold item counts
         const chartLabels = currentMenu.map(item => item.name);
@@ -2153,6 +2191,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     resetTopItemsBtn.addEventListener('click', resetTopItems);
 
+    if (topItemsRestaurantFilter) {
+        topItemsRestaurantFilter.addEventListener('change', renderTopItemsChart);
+    }
+
     settingsBtn.addEventListener('click', () => {
         settingsModalOverlay.classList.remove('hidden');
         void settingsModalOverlay.offsetWidth;
@@ -2179,6 +2221,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             renderMainMenu(await loadMenu());
             updateTotalPrice();
             await updateDailySummary();
+            await populateTopItemsFilter();
             await renderTopItemsChart();
 
             if (user.role === 'admin') {
@@ -2194,6 +2237,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             mainMenuUlPlatos.innerHTML = '';
             mainMenuUlBebidas.innerHTML = '';
             historyListUl.innerHTML = '<li>Debes iniciar sesión para ver el historial.</li>';
+            if (topItemsRestaurantFilter) {
+                topItemsRestaurantFilter.innerHTML = '<option value="all">Todos</option>';
+                topItemsRestaurantFilter.classList.add('hidden');
+            }
         }
     };
 

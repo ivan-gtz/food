@@ -1349,6 +1349,27 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     };
 
+    const loadTopItemsAllRestaurants = async () => {
+        try {
+            const restaurants = await loadRestaurants();
+            const aggregated = {};
+            for (const restaurant of restaurants) {
+                const topItemsRef = doc(db, 'restaurants', restaurant.docId, 'analytics', 'topItems');
+                const docSnap = await getDoc(topItemsRef);
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    Object.entries(data).forEach(([name, count]) => {
+                        aggregated[name] = (aggregated[name] || 0) + count;
+                    });
+                }
+            }
+            return aggregated;
+        } catch (error) {
+            console.error('Error loading top items for all restaurants:', error);
+            return {};
+        }
+    };
+
     const saveTopItems = async (topItems) => {
         if (!currentUser || !currentUser.id) return;
         const topItemsRef = doc(db, 'restaurants', currentUser.id, 'analytics', 'topItems');
@@ -1390,7 +1411,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const renderTopItemsChart = async () => {
         const currentMenu = await loadMenu(); // Load menu asynchronously
-        const topItems = await loadTopItems();
+        const topItems = currentUser && currentUser.role === 'admin'
+            ? await loadTopItemsAllRestaurants()
+            : await loadTopItems();
 
         // Prepare data for Chart.js using accumulated sold item counts
         const chartLabels = currentMenu.map(item => item.name);

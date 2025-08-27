@@ -2276,9 +2276,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     resetTopItemsBtn.addEventListener('click', resetTopItems);
 
     if (topItemsRestaurantFilter) {
-        topItemsRestaurantFilter.addEventListener('change', () => {
-            renderTopItemsChart();
-            renderOrderTypeChart();
+        topItemsRestaurantFilter.addEventListener('change', async () => {
+            await renderTopItemsChart();
+            await renderOrderTypeChart();
         });
     }
 

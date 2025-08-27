@@ -655,9 +655,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             if (newStatus === 'Recibido' && oldStatus !== 'Recibido') {
                 await trackSoldItems({ ...oldOrder, status: newStatus });
+                await trackOrderTypeStats(oldOrder);
                 await updateDailySummary();
             } else if (oldStatus === 'Recibido' && newStatus !== 'Recibido') {
                 await untrackSoldItems(oldOrder);
+                await untrackOrderTypeStats(oldOrder);
                 await updateDailySummary();
             }
             await renderOrderHistory();
@@ -999,9 +1001,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (oldOrder.status === 'Recibido' && updatedOrder.status !== 'Recibido') {
             await untrackSoldItems(oldOrder);
+            await untrackOrderTypeStats(oldOrder);
             await updateDailySummary();
         } else if (oldOrder.status !== 'Recibido' && updatedOrder.status === 'Recibido') {
             await trackSoldItems(updatedOrder);
+            await trackOrderTypeStats(updatedOrder);
             await updateDailySummary();
         } else if (oldOrder.status === 'Recibido' && updatedOrder.status === 'Recibido') {
             const oldItemNames = new Set(oldOrder.items.map(item => typeof item === 'object' ? item.name : item));
@@ -1016,6 +1020,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (!oldItemNames.has(name)) {
                     await trackSoldItems({ items: [{ name }] });
                 }
+            }
+            if (oldOrder.orderType !== newOrderType) {
+                await untrackOrderTypeStats(oldOrder);
+                await trackOrderTypeStats(updatedOrder);
             }
             await updateDailySummary();
         }
@@ -1405,6 +1413,71 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     };
 
+    // --- Order Type Statistics Helpers ---
+    const loadOrderTypeStats = async (restaurantId = null) => {
+        const restId = restaurantId || (currentUser && currentUser.id);
+        if (!restId) return { dineIn: 0, takeaway: 0 };
+        try {
+            const ref = doc(db, 'restaurants', restId, 'analytics', 'orderTypeStats');
+            const snap = await getDoc(ref);
+            return snap.exists() ? snap.data() : { dineIn: 0, takeaway: 0 };
+        } catch (error) {
+            console.error('Error loading order type stats:', error);
+            return { dineIn: 0, takeaway: 0 };
+        }
+    };
+
+    const loadOrderTypeStatsAllRestaurants = async () => {
+        try {
+            const restaurants = await loadRestaurants();
+            const aggregated = { dineIn: 0, takeaway: 0 };
+            for (const restaurant of restaurants) {
+                const stats = await loadOrderTypeStats(restaurant.docId);
+                aggregated.dineIn += stats.dineIn || 0;
+                aggregated.takeaway += stats.takeaway || 0;
+            }
+            return aggregated;
+        } catch (error) {
+            console.error('Error loading order type stats for all restaurants:', error);
+            return { dineIn: 0, takeaway: 0 };
+        }
+    };
+
+    const saveOrderTypeStats = async (stats) => {
+        if (!currentUser || !currentUser.id) return;
+        try {
+            await setDoc(doc(db, 'restaurants', currentUser.id, 'analytics', 'orderTypeStats'), stats);
+        } catch (error) {
+            console.error('Error saving order type stats:', error);
+        }
+    };
+
+    const trackOrderTypeStats = async (order) => {
+        let stats = await loadOrderTypeStats();
+        if (order.orderType === 'Comer en Restaurante') {
+            stats.dineIn = (stats.dineIn || 0) + 1;
+        } else if (order.orderType === 'Para Llevar') {
+            stats.takeaway = (stats.takeaway || 0) + 1;
+        }
+        await saveOrderTypeStats(stats);
+        if (!topItemsDiv.classList.contains('hidden')) {
+            await renderOrderTypeChart();
+        }
+    };
+
+    const untrackOrderTypeStats = async (order) => {
+        let stats = await loadOrderTypeStats();
+        if (order.orderType === 'Comer en Restaurante') {
+            stats.dineIn = Math.max((stats.dineIn || 0) - 1, 0);
+        } else if (order.orderType === 'Para Llevar') {
+            stats.takeaway = Math.max((stats.takeaway || 0) - 1, 0);
+        }
+        await saveOrderTypeStats(stats);
+        if (!topItemsDiv.classList.contains('hidden')) {
+            await renderOrderTypeChart();
+        }
+    };
+
     const trackSoldItems = async (order) => {
         let topItems = await loadTopItems();
         order.items.forEach(item => {
@@ -1551,6 +1624,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (currentUser && currentUser.id) {
                 try {
                     await deleteDoc(doc(db, 'restaurants', currentUser.id, 'analytics', 'topItems'));
+                    await deleteDoc(doc(db, 'restaurants', currentUser.id, 'analytics', 'orderTypeStats'));
                 } catch (error) {
                     console.error('Error resetting top items:', error);
                 }
@@ -2202,7 +2276,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     resetTopItemsBtn.addEventListener('click', resetTopItems);
 
     if (topItemsRestaurantFilter) {
-        topItemsRestaurantFilter.addEventListener('change', renderTopItemsChart);
+        topItemsRestaurantFilter.addEventListener('change', () => {
+            renderTopItemsChart();
+            renderOrderTypeChart();
+        });
     }
 
     settingsBtn.addEventListener('click', () => {
@@ -2712,25 +2789,25 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // New: Function to render Order Type Distribution Chart
     async function renderOrderTypeChart() {
-        const history = await loadOrderHistory();
         let dineInCount = 0;
         let takeawayCount = 0;
 
-        // Filter for "Recibido" orders today
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-
-        const receivedOrdersToday = history.filter(o => 
-            o.status === 'Recibido' && new Date(o.timestamp).toDateString() === today.toDateString()
-        );
-
-        receivedOrdersToday.forEach(order => {
-            if (order.orderType === 'Comer en Restaurante') {
-                dineInCount++;
-            } else if (order.orderType === 'Para Llevar') {
-                takeawayCount++;
+        if (currentUser && currentUser.role === 'admin') {
+            const selectedRestaurant = topItemsRestaurantFilter ? topItemsRestaurantFilter.value : 'all';
+            if (selectedRestaurant && selectedRestaurant !== 'all') {
+                const stats = await loadOrderTypeStats(selectedRestaurant);
+                dineInCount = stats.dineIn || 0;
+                takeawayCount = stats.takeaway || 0;
+            } else {
+                const aggregated = await loadOrderTypeStatsAllRestaurants();
+                dineInCount = aggregated.dineIn || 0;
+                takeawayCount = aggregated.takeaway || 0;
             }
-        });
+        } else {
+            const stats = await loadOrderTypeStats();
+            dineInCount = stats.dineIn || 0;
+            takeawayCount = stats.takeaway || 0;
+        }
 
         if (orderTypeChartInstance) {
             orderTypeChartInstance.destroy();
@@ -2777,7 +2854,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     },
                     title: {
                         display: true,
-                        text: 'Distribución de Pedidos (Comer en Restaurante vs Para Llevar) Hoy', // Updated title
+                        text: 'Distribución de Pedidos (Comer en Restaurante vs Para Llevar)',
                         font: {
                             size: 16
                         }

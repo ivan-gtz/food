@@ -1344,7 +1344,8 @@ h2 {
 .top-items-button-container {
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
+    align-items: center;
+    margin: 0 auto;
 }
 
 .top-items-button-container .download-button {

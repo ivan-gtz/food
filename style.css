@@ -263,7 +263,7 @@ body {
 #top-items,
 #restaurant-management-section,
 #weekly-stats { /* Added weekly stats section */
-    max-width: 600px; /* Keep consistent max width for content */
+    max-width: 950px; /* Keep consistent max width for content */
     margin-left: auto; /* Center content within main-content */
     margin-right: auto;
     margin-bottom: 30px;
@@ -2515,15 +2515,14 @@ footer p {
     color: white;
     padding: 14px 35px;
     border: none;
-    border-radius: 50px;
+    border-radius: 25px;
     font-size: 1.3em;
-    font-weight: 700;
+    font-weight: 500px;
     cursor: pointer;
     transition: all 0.3s ease;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    font-family: 'Fredoka One', cursive;
     box-shadow: 0 4px 15px rgba(255, 69, 0, 0.3);
     margin-top: 25px;
     position: relative;
@@ -2581,6 +2580,39 @@ footer p {
     #calculate-btn {
         font-size: 1.2em;
         padding: 12px 30px;
+    }
+}
+
+/* Improved layout for main action buttons */
+.button-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;             /* consistent spacing between buttons */
+    justify-content: center;
+    align-items: center;
+    margin-top: 24px;      /* space above the group */
+}
+
+.button-container button {
+    flex: 1 1 220px;       /* responsive width, wrap as needed */
+    max-width: 220px;
+}
+
+/* Override earlier full-width + margins inside this container only */
+.button-container #calculate-btn,
+.button-container #place-order-btn,
+.button-container #print-invoice-btn {
+    width: auto;
+    margin: 0;             /* gap handles spacing */
+}
+
+@media (max-width: 480px) {
+    .button-container {
+        gap: 10px;
+    }
+    .button-container button {
+        flex: 1 1 100%;
+        max-width: 100%;   /* stack neatly on very small screens */
     }
 }
 

@@ -1409,7 +1409,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         let topItems = await loadTopItems();
         order.items.forEach(item => {
             const itemName = typeof item === 'object' ? item.name : item;
-            topItems[itemName] = (topItems[itemName] || 0) + 1;
+            const quantity = typeof item === 'object' && item.quantity !== undefined ? item.quantity : 1;
+            topItems[itemName] = (topItems[itemName] || 0) + quantity;
         });
         await saveTopItems(topItems);
         if (!topItemsDiv.classList.contains('hidden')) {
@@ -1421,8 +1422,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         let topItems = await loadTopItems();
         order.items.forEach(item => {
             const itemName = typeof item === 'object' ? item.name : item;
+            const quantity = typeof item === 'object' && item.quantity !== undefined ? item.quantity : 1;
             if (topItems[itemName] && topItems[itemName] > 0) {
-                topItems[itemName]--;
+                topItems[itemName] = Math.max((topItems[itemName] || 0) - quantity, 0);
                 if (topItems[itemName] === 0) {
                     delete topItems[itemName];
                 }

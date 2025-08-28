@@ -130,6 +130,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     let appSettings = {};
     let currentUser = null;
+    const isAdmin = () => currentUser?.role?.toLowerCase() === 'admin';
+    const isRestaurant = () => currentUser?.role?.toLowerCase() === 'restaurant';
 
     let currentOrderTotal = 0;
 
@@ -155,7 +157,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         iconElement.addEventListener('click', async (e) => {
             e.preventDefault();
             e.stopPropagation();
-            if (currentUser && (currentUser.role === 'restaurant' || currentUser.role === 'admin')) {
+            if (isRestaurant() || isAdmin()) {
                 if (currentUser.id) {
                     const url = `${window.location.origin}/${path}?rest=${currentUser.id}`;
                     try {
@@ -204,18 +206,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     const getStorageKey = (key) => {
-        if (currentUser && currentUser.role === 'restaurant' && currentUser.id) {
+        if (isRestaurant() && currentUser?.id) {
             return `${currentUser.id}_${key}`;
-        } else if (currentUser && currentUser.role === 'admin') {
+        } else if (isAdmin()) {
             return `admin_default_${key}`; // Admin uses a default set of data
         }
-        return key; 
+        return key;
     };
 
     const getSettingsKey = () => {
-        if (currentUser && currentUser.role === 'restaurant' && currentUser.id) {
+        if (isRestaurant() && currentUser?.id) {
             return `restaurant_${currentUser.id}_appSettings`;
-        } else if (currentUser && currentUser.role === 'admin') {
+        } else if (isAdmin()) {
             return `admin_appSettings`;
         }
         return 'appSettings'; // Default fallback, though should be covered by user login
@@ -280,7 +282,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         } else if (event.data && event.data.type === 'settingsUpdated') {
             console.log('Settings updated from iframe. Monitor(s) will refresh via storage event.');
             await loadAppSettings(); // Reload settings in the main app
-            if (currentUser && (currentUser.role === 'restaurant' || currentUser.role === 'admin')) {
+            if (isRestaurant() || isAdmin()) {
                 renderMainMenu(await loadMenu());
                 updateTotalPrice();
                 await updateDailySummary();
@@ -618,7 +620,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const loadOrderHistory = async () => {
         let ordersRef = collection(db, 'orders');
-        if (currentUser && currentUser.role === 'restaurant') {
+        if (isRestaurant()) {
             ordersRef = query(ordersRef, where('restaurantId', '==', currentUser.id));
         }
         const snapshot = await getDocs(ordersRef);
@@ -637,7 +639,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const idNum = parseInt(orderId, 10);
         let ordersRef = collection(db, 'orders');
         let q;
-        if (currentUser && currentUser.role === 'restaurant') {
+        if (isRestaurant()) {
             q = query(ordersRef, where('id', '==', idNum), where('restaurantId', '==', currentUser.id));
         } else {
             q = query(ordersRef, where('id', '==', idNum));
@@ -683,7 +685,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const currencySymbol = appSettings.currencySymbol || '$';
 
         // --- Resumen agrupado por restaurante para administradores ---
-        if (currentUser && currentUser.role === 'admin') {
+        if (isAdmin()) {
             const restaurants = await loadRestaurants();
             const restaurantMap = {};
             restaurants.forEach(r => {
@@ -825,7 +827,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (event.key === relevantAppSettingsKey) {
                 console.log('Settings updated from iframe. Monitor(s) will refresh via storage event.');
                 await loadAppSettings();
-                if (currentUser && (currentUser.role === 'restaurant' || currentUser.role === 'admin')) {
+                if (isRestaurant() || isAdmin()) {
                     renderMainMenu(await loadMenu());
                     updateTotalPrice();
                     await updateDailySummary();
@@ -1030,7 +1032,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         let ordersRef = collection(db, 'orders');
         let q;
-        if (currentUser && currentUser.role === 'restaurant') {
+        if (isRestaurant()) {
             q = query(ordersRef, where('id', '==', editingOrderId), where('restaurantId', '==', currentUser.id));
         } else {
             q = query(ordersRef, where('id', '==', editingOrderId));
@@ -1385,7 +1387,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const populateTopItemsFilter = async () => {
         if (!topItemsRestaurantFilter) return;
         topItemsRestaurantFilter.innerHTML = '<option value="all">Todos</option>';
-        if (currentUser && currentUser.role === 'admin') {
+        if (isAdmin()) {
             try {
                 const restaurants = await loadRestaurants();
                 restaurants.forEach(restaurant => {
@@ -1514,7 +1516,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         let chartLabels = [];
         let currentMenu = [];
 
-        if (currentUser && currentUser.role === 'admin') {
+        if (isAdmin()) {
             const selectedRestaurant = topItemsRestaurantFilter ? topItemsRestaurantFilter.value : 'all';
             if (selectedRestaurant && selectedRestaurant !== 'all') {
                 currentMenu = await loadMenu(selectedRestaurant);
@@ -2157,7 +2159,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (sectionId) {
                 showSection(sectionId);
             } else if (link.id === 'nav-monitor') {
-                if (currentUser && (currentUser.role === 'restaurant' || currentUser.role === 'admin')) {
+                if (isRestaurant() || isAdmin()) {
                     if (currentUser.id) {
                         window.open(`monitor.html?rest=${currentUser.id}`, '_blank');
                     } else {
@@ -2168,7 +2170,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     openLoginModal();
                 }
             } else if (link.id === 'nav-detail-monitor') {
-                if (currentUser && (currentUser.role === 'restaurant' || currentUser.role === 'admin')) {
+                if (isRestaurant() || isAdmin()) {
                     if (currentUser.id) {
                         window.open(`monitor_details.html?rest=${currentUser.id}`, '_blank');
                     } else {
@@ -2239,7 +2241,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (confirmed) {
             let ordersRef = collection(db, 'orders');
-            if (currentUser && currentUser.role === 'restaurant') {
+            if (isRestaurant()) {
                 ordersRef = query(ordersRef, where('restaurantId', '==', currentUser.id));
             }
             const ordersSnapshot = await getDocs(ordersRef);
@@ -2311,7 +2313,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             await populateTopItemsFilter();
             await renderTopItemsChart();
 
-            if (user.role === 'admin') {
+            if (user.role?.toLowerCase() === 'admin') {
                 await showSection('restaurant-management-section');
             } else {
                 await showSection('home-section');
@@ -2346,7 +2348,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (userDocSnap.exists()) {
                 const userData = userDocSnap.data();
                 // Verificar si la suscripción del restaurante está activa
-                if (userData.role === 'restaurant' && userData.id) {
+                if (userData.role?.toLowerCase() === 'restaurant' && userData.id) {
                     try {
                         const restaurantRef = doc(db, 'restaurants', userData.id);
                         const restaurantSnap = await getDoc(restaurantRef);
@@ -2502,10 +2504,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const updateSidebarVisibility = () => {
         const restaurantSections = [navHistory, navDailySummary, navTopItems, navMenuManagement, navMonitor, navDetailMonitor];
-        if (currentUser && currentUser.role === 'admin') {
+        if (isAdmin()) {
             navRestaurantManagement.classList.remove('hidden');
             restaurantSections.forEach(link => link.classList.remove('hidden'));
-        } else if (currentUser && currentUser.role === 'restaurant') {
+        } else if (isRestaurant()) {
             navRestaurantManagement.classList.add('hidden');
             restaurantSections.forEach(link => link.classList.remove('hidden'));
         } else {
@@ -2741,7 +2743,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     updateFloatingTotal();
     
     // Ensure menu is populated with default items if empty
-    if (currentUser && (currentUser.role === 'restaurant' || currentUser.role === 'admin')) {
+    if (isRestaurant() || isAdmin()) {
         const currentMenu = await loadMenu();
         if (!currentMenu || currentMenu.length === 0) {
             saveMenu(defaultMenuItems);
@@ -2792,7 +2794,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         let dineInCount = 0;
         let takeawayCount = 0;
 
-        if (currentUser && currentUser.role === 'admin') {
+        if (isAdmin()) {
             const selectedRestaurant = topItemsRestaurantFilter ? topItemsRestaurantFilter.value : 'all';
             if (selectedRestaurant && selectedRestaurant !== 'all') {
                 const stats = await loadOrderTypeStats(selectedRestaurant);

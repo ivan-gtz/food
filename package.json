@@ -1,0 +1,13 @@
+{
+  "name": "food",
+  "version": "1.0.0",
+  "description": "",
+  "main": "firebase-init.js",
+  "scripts": {
+    "test": "echo \"No tests configured\""
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs"
+}

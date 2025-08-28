@@ -2138,8 +2138,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 await updateDailySummary();
                 break;
             case 'top-items':
-                renderTopItemsChart();
-                renderOrderTypeChart(); // Call to render order type chart here
+                await populateTopItemsFilter();
+                await renderTopItemsChart();
+                await renderOrderTypeChart(); // Call to render order type chart here
                 break;
             case 'restaurant-management-section':
                 await renderRestaurantManagement();

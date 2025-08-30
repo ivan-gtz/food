@@ -1878,7 +1878,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             color: white;
             border-radius: 10px;
             font-size: 1.2em;
-            font-weight: 700;
+            font-weight: 100;
             margin-top: 15px;
         }
 
@@ -1891,12 +1891,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             justify-content: space-between;
             align-items: center;
             margin-bottom: 10px;
-            font-weight: 600;
+            font-weight: 100;
             color: #333;
         }
 
         .cash-input {
-            width: 120px;
+            width: 100px;
             padding: 8px;
             border: 2px solid #FF8C00;
             border-radius: 8px;
@@ -1909,6 +1909,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             color: white;
             padding: 10px;
             border-radius: 8px;
+        }
+
+        /* Reduce boldness for change amount */
+        .change-row strong,
+        #change-amount {
+            font-weight: 400;
         }
 
         .modal-place-order-btn {
@@ -2050,7 +2056,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         </div>
                         <div class="calculation-total">
                             <span>Total:</span>
-                            <strong>${total.toFixed(2)} ${appSettings.currencySymbol || '$'}</strong>
+                            <span>${total.toFixed(2)} ${appSettings.currencySymbol || '$'}</span>
                         </div>
                         <div class="payment-section">
                             <div class="payment-row">

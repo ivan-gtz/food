@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     let orderHistory = [];
 
     const { db, auth, onAuthStateChanged } = await import('./firebase-init.js');
-    const { collection, onSnapshot, query, where, getDocs, doc, updateDoc, getDoc } = await import('https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js');
+    const { collection, onSnapshot, query, where, getDocs, doc, updateDoc, getDoc, setDoc } = await import('https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js');
     const initializeApp = async (restaurantId) => {
         try {
             const docSnap = await getDoc(doc(db, 'restaurants', restaurantId));
@@ -111,6 +111,52 @@ document.addEventListener('DOMContentLoaded', async () => {
             restaurantLogoElement.classList.add('hidden');
         }
     };
+    const loadTopItems = async () => {
+        if (!currentRestaurantId) return {};
+        try {
+            const topItemsRef = doc(db, 'restaurants', currentRestaurantId, 'analytics', 'topItems');
+            const docSnap = await getDoc(topItemsRef);
+            return docSnap.exists() ? docSnap.data() : {};
+        } catch (error) {
+            console.error('Error loading top items:', error);
+            return {};
+        }
+    };
+    
+    const saveTopItems = async (topItems) => {
+        if (!currentRestaurantId) return;
+        const topItemsRef = doc(db, 'restaurants', currentRestaurantId, 'analytics', 'topItems');
+        try {
+            await setDoc(topItemsRef, topItems);
+        } catch (error) {
+            console.error('Error saving top items:', error);
+        }
+    };
+    
+    const trackSoldItems = async (order) => {
+        let topItems = await loadTopItems();
+        order.items.forEach(item => {
+            const itemName = typeof item === 'object' ? item.name : item;
+            const quantity = typeof item === 'object' && item.quantity !== undefined ? item.quantity : 1;
+            topItems[itemName] = (topItems[itemName] || 0) + quantity;
+        });
+        await saveTopItems(topItems);
+    };
+    
+    const untrackSoldItems = async (order) => {
+        let topItems = await loadTopItems();
+        order.items.forEach(item => {
+            const itemName = typeof item === 'object' ? item.name : item;
+            const quantity = typeof item === 'object' && item.quantity !== undefined ? item.quantity : 1;
+            if (topItems[itemName] && topItems[itemName] > 0) {
+                topItems[itemName] = Math.max((topItems[itemName] || 0) - quantity, 0);
+                if (topItems[itemName] === 0) {
+                    delete topItems[itemName];
+                }
+            }
+        });
+        await saveTopItems(topItems);
+    };
 
     // Function to update order status in Firestore
     const updateOrderStatus = async (orderId, newStatus) => {
@@ -125,7 +171,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         const targetDoc = snapshot.docs[0];
 
         if (targetDoc) {
+            const orderData = targetDoc.data();
             await updateDoc(doc(db, 'orders', targetDoc.id), { status: newStatus });
+            if (newStatus === 'Recibido' && oldStatus !== 'Recibido') {
+                await trackSoldItems(orderData);
+            } else if (oldStatus === 'Recibido' && newStatus !== 'Recibido') {
+                await untrackSoldItems(orderData);
+            }
 
             if (oldStatus !== 'Listo' && newStatus === 'Listo') {
                 try {

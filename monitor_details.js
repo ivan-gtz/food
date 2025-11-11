@@ -132,6 +132,47 @@ document.addEventListener('DOMContentLoaded', async () => {
             console.error('Error saving top items:', error);
         }
     };
+
+    const loadOrderTypeStats = async () => {
+        if (!currentRestaurantId) return { dineIn: 0, takeaway: 0 };
+        try {
+            const ref = doc(db, 'restaurants', currentRestaurantId, 'analytics', 'orderTypeStats');
+            const snap = await getDoc(ref);
+            return snap.exists() ? snap.data() : { dineIn: 0, takeaway: 0 };
+        } catch (error) {
+            console.error('Error loading order type stats:', error);
+            return { dineIn: 0, takeaway: 0 };
+        }
+    };
+
+    const saveOrderTypeStats = async (stats) => {
+        if (!currentRestaurantId) return;
+        try {
+            await setDoc(doc(db, 'restaurants', currentRestaurantId, 'analytics', 'orderTypeStats'), stats);
+        } catch (error) {
+            console.error('Error saving order type stats:', error);
+        }
+    };
+
+    const trackOrderTypeStats = async (order) => {
+        let stats = await loadOrderTypeStats();
+        if (order.orderType === 'Comer en Restaurante') {
+            stats.dineIn = (stats.dineIn || 0) + 1;
+        } else if (order.orderType === 'Para Llevar') {
+            stats.takeaway = (stats.takeaway || 0) + 1;
+        }
+        await saveOrderTypeStats(stats);
+    };
+
+    const untrackOrderTypeStats = async (order) => {
+        let stats = await loadOrderTypeStats();
+        if (order.orderType === 'Comer en Restaurante') {
+            stats.dineIn = Math.max((stats.dineIn || 0) - 1, 0);
+        } else if (order.orderType === 'Para Llevar') {
+            stats.takeaway = Math.max((stats.takeaway || 0) - 1, 0);
+        }
+        await saveOrderTypeStats(stats);
+    };
     
     const trackSoldItems = async (order) => {
         let topItems = await loadTopItems();
@@ -175,8 +216,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             await updateDoc(doc(db, 'orders', targetDoc.id), { status: newStatus });
             if (newStatus === 'Recibido' && oldStatus !== 'Recibido') {
                 await trackSoldItems(orderData);
+                await trackOrderTypeStats(orderData);
             } else if (oldStatus === 'Recibido' && newStatus !== 'Recibido') {
                 await untrackSoldItems(orderData);
+                await untrackOrderTypeStats(orderData);
             }
 
             if (oldStatus !== 'Listo' && newStatus === 'Listo') {
